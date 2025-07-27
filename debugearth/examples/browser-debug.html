@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DebugEarth Browser Example</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .error-button {
+            background: #f44336;
+        }
+        .error-button:hover {
+            background: #da190b;
+        }
+        #output {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .hidden-element {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌍 DebugEarth Browser Example</h1>
+        <p>Click the buttons below to trigger different types of bugs and watch DebugEarth analyze them!</p>
+        
+        <h2>UI Bugs</h2>
+        <button onclick="triggerUIBug()">Trigger Hidden Element Bug</button>
+        <button onclick="triggerClickBug()" class="error-button">Trigger Click Handler Error</button>
+        
+        <h2>JavaScript Errors</h2>
+        <button onclick="triggerTypeError()" class="error-button">Trigger Type Error</button>
+        <button onclick="triggerAsyncError()" class="error-button">Trigger Async Error</button>
+        
+        <h2>Performance Issues</h2>
+        <button onclick="triggerSlowLoop()">Trigger Slow Loop</button>
+        <button onclick="triggerMemoryLeak()">Start Memory Leak</button>
+        
+        <h2>Debug Controls</h2>
+        <button onclick="startDebugSession()">Start Debug Session</button>
+        <button onclick="analyzeSession()">Analyze Current Session</button>
+        
+        <div id="output">Output will appear here...</div>
+        
+        <!-- Hidden problematic element -->
+        <div id="important-data" class="hidden-element error">
+            This element is hidden but referenced in code!
+        </div>
+    </div>
+
+    <script type="module">
+        import { createDebugEarth } from '../dist/index.js';
+        
+        // Make functions available globally
+        window.debugEarth = createDebugEarth({
+            verbose: true,
+            enableVisualDebugging: true,
+            enableBrowserDebugging: true
+        });
+        
+        window.currentSession = null;
+        
+        window.log = function(message) {
+            const output = document.getElementById('output');
+            output.textContent += message + '\n';
+            output.scrollTop = output.scrollHeight;
+        };
+        
+        window.startDebugSession = async function() {
+            window.currentSession = await window.debugEarth.startDebugging('Browser UI and JavaScript bugs');
+            window.log('🚀 Debug session started: ' + window.currentSession.id);
+        };
+        
+        window.analyzeSession = async function() {
+            if (!window.currentSession) {
+                window.log('❌ No active session. Start a debug session first!');
+                return;
+            }
+            
+            window.log('\n🔍 Analyzing session...\n');
+            const rootCause = await window.debugEarth.analyze(window.currentSession.id);
+            
+            if (rootCause) {
+                window.log('✅ Root cause found!');
+                window.log(rootCause.description);
+            } else {
+                window.log('❓ Need more evidence. Trigger some bugs!');
+            }
+        };
+        
+        window.triggerUIBug = function() {
+            window.log('🐛 Triggering UI bug...');
+            try {
+                // Try to access hidden element
+                const element = document.getElementById('important-data');
+                const data = element.textContent;
+                
+                // This will work but the element is hidden
+                window.log('Found hidden element with data: ' + data);
+                
+                // Try to style it
+                element.style.color = 'red';
+                element.classList.add('active');
+            } catch (error) {
+                console.error('UI Error:', error);
+                window.log('❌ UI Error: ' + error.message);
+            }
+        };
+        
+        window.triggerClickBug = function() {
+            window.log('🐛 Triggering click handler error...');
+            try {
+                // Reference non-existent element
+                const button = document.getElementById('non-existent-button');
+                button.addEventListener('click', () => {
+                    console.log('This will never run');
+                });
+            } catch (error) {
+                console.error('Click Handler Error:', error);
+                window.log('❌ Click Error: ' + error.message);
+            }
+        };
+        
+        window.triggerTypeError = function() {
+            window.log('🐛 Triggering type error...');
+            try {
+                const user = null;
+                console.log(user.name); // This will throw
+            } catch (error) {
+                console.error('Type Error:', error);
+                window.log('❌ Type Error: ' + error.message);
+            }
+        };
+        
+        window.triggerAsyncError = async function() {
+            window.log('🐛 Triggering async error...');
+            try {
+                await new Promise((resolve, reject) => {
+                    setTimeout(() => {
+                        reject(new Error('Async operation failed after timeout'));
+                    }, 1000);
+                });
+            } catch (error) {
+                console.error('Async Error:', error);
+                window.log('❌ Async Error: ' + error.message);
+            }
+        };
+        
+        window.triggerSlowLoop = function() {
+            window.log('🐛 Starting slow loop...');
+            const start = performance.now();
+            
+            // Intentionally slow operation
+            let result = 0;
+            for (let i = 0; i < 10000000; i++) {
+                result += Math.sqrt(i);
+            }
+            
+            const duration = performance.now() - start;
+            window.log(`⏱️ Slow loop completed in ${duration.toFixed(2)}ms`);
+            console.log('Loop result:', result);
+        };
+        
+        window.triggerMemoryLeak = function() {
+            window.log('🐛 Starting memory leak...');
+            window.leakyArray = window.leakyArray || [];
+            
+            const interval = setInterval(() => {
+                // Keep adding data without cleanup
+                for (let i = 0; i < 100; i++) {
+                    window.leakyArray.push({
+                        id: Date.now() + i,
+                        data: new Array(10000).fill('memory leak'),
+                        timestamp: new Date()
+                    });
+                }
+                
+                window.log(`Memory leak: ${window.leakyArray.length} objects`);
+                
+                if (window.leakyArray.length > 1000) {
+                    clearInterval(interval);
+                    window.log('❌ Memory leak demonstration stopped');
+                }
+            }, 100);
+        };
+        
+        // Auto-start session on load
+        window.addEventListener('load', () => {
+            window.startDebugSession();
+        });
+    </script>
+</body>
+</html>

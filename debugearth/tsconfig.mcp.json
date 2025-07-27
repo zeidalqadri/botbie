@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "ES2022",
+    "target": "ES2022",
+    "outDir": "./dist",
+    "rootDir": ".",
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true
+  },
+  "include": [
+    "mcp-server.ts",
+    "src/**/*"
+  ],
+  "exclude": ["node_modules", "dist", "tests"]
+}

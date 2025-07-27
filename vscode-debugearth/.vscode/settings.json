@@ -1,0 +1,14 @@
+{
+  "files.exclude": {
+    "out": false,
+    "node_modules": true
+  },
+  "search.exclude": {
+    "out": true,
+    "node_modules": true
+  },
+  "typescript.tsc.autoDetect": "off",
+  "typescript.preferences.quoteStyle": "single",
+  "editor.insertSpaces": true,
+  "editor.tabSize": 4
+}

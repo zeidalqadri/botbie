@@ -1,0 +1,171 @@
+{
+  "name": "debugearth-vscode",
+  "displayName": "DebugEarth",
+  "description": "A methodical debug agent that digs deep to uncover root causes",
+  "version": "1.0.0",
+  "publisher": "debugearth",
+  "icon": "resources/icon.png",
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": ["Debuggers", "Other"],
+  "keywords": ["debug", "debugging", "root-cause-analysis", "error-tracking"],
+  "activationEvents": [
+    "onCommand:debugearth.startDebugging",
+    "onView:debugearthSessions"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "debugearth.startDebugging",
+        "title": "Start Debugging Session",
+        "category": "DebugEarth"
+      },
+      {
+        "command": "debugearth.analyzeSession",
+        "title": "Analyze Session",
+        "category": "DebugEarth"
+      },
+      {
+        "command": "debugearth.addEvidence",
+        "title": "Add Evidence",
+        "category": "DebugEarth"
+      },
+      {
+        "command": "debugearth.stopSession",
+        "title": "Stop Session",
+        "category": "DebugEarth"
+      },
+      {
+        "command": "debugearth.showSessions",
+        "title": "Show Sessions",
+        "category": "DebugEarth"
+      },
+      {
+        "command": "debugearth.clearSessions",
+        "title": "Clear Sessions",
+        "category": "DebugEarth"
+      },
+      {
+        "command": "debugearth.refreshSessions",
+        "title": "Refresh",
+        "icon": "$(refresh)"
+      }
+    ],
+    "views": {
+      "explorer": [
+        {
+          "id": "debugearthSessions",
+          "name": "DebugEarth Sessions",
+          "when": "workspaceHasDebugEarth"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "debugearth",
+          "title": "DebugEarth",
+          "icon": "$(bug)"
+        }
+      ]
+    },
+    "views": {
+      "debugearth": [
+        {
+          "id": "debugearthSessions",
+          "name": "Debug Sessions",
+          "type": "tree"
+        },
+        {
+          "id": "debugearthEvidence",
+          "name": "Evidence",
+          "type": "tree"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "debugearth.refreshSessions",
+          "when": "view == debugearthSessions",
+          "group": "navigation"
+        },
+        {
+          "command": "debugearth.startDebugging",
+          "when": "view == debugearthSessions"
+        },
+        {
+          "command": "debugearth.clearSessions",
+          "when": "view == debugearthSessions"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "debugearth.analyzeSession",
+          "when": "view == debugearthSessions && viewItem == session-active"
+        },
+        {
+          "command": "debugearth.stopSession",
+          "when": "view == debugearthSessions && viewItem == session-active"
+        },
+        {
+          "command": "debugearth.addEvidence",
+          "when": "view == debugearthSessions && viewItem == session-active"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "debugearth.startDebugging"
+        },
+        {
+          "command": "debugearth.analyzeSession",
+          "when": "debugearth.hasActiveSessions"
+        },
+        {
+          "command": "debugearth.addEvidence",
+          "when": "debugearth.hasActiveSessions"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "DebugEarth",
+      "properties": {
+        "debugearth.verbose": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable verbose logging"
+        },
+        "debugearth.maxAttempts": {
+          "type": "number",
+          "default": 10,
+          "description": "Maximum debugging attempts per session"
+        },
+        "debugearth.enableVisualDebugging": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable visual debugging features"
+        },
+        "debugearth.autoRefresh": {
+          "type": "boolean",
+          "default": true,
+          "description": "Auto-refresh sessions view"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.74.0",
+    "@types/node": "20.x",
+    "typescript": "^5.2.2"
+  },
+  "dependencies": {
+    "debugearth": "file:../debugearth"
+  }
+}
