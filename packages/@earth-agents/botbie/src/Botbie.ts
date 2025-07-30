@@ -44,6 +44,7 @@ export interface CodeIssue {
   file: string;
   line?: number;
   description: string;
+  message?: string;
   suggestion?: string;
   autoFixAvailable?: boolean;
 }

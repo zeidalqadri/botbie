@@ -1,0 +1,25 @@
+{
+  "mcpServers": {
+    "earth-agents": {
+      "command": "earth-mcp",
+      "args": [],
+      "env": {
+        "NODE_ENV": "production"
+      }
+    }
+  },
+  "globalShortcuts": {
+    "earth:analyze": {
+      "description": "Quick code analysis with Botbie",
+      "shortcut": "cmd+shift+a"
+    },
+    "earth:debug": {
+      "description": "Start debugging session with DebugEarth",  
+      "shortcut": "cmd+shift+d"
+    },
+    "earth:workflow": {
+      "description": "Run intelligent Earth Agents workflow",
+      "shortcut": "cmd+shift+w"
+    }
+  }
+}
