@@ -1,0 +1,107 @@
+{
+  "$schema": "https://botbie.dev/schemas/config.json",
+  "version": "1.0.0",
+  "extends": "recommended",
+  "analysis": {
+    "includePatterns": ["src/**/*", "lib/**/*"],
+    "excludePatterns": [
+      "**/node_modules/**",
+      "**/dist/**",
+      "**/build/**",
+      "**/*.test.*",
+      "**/*.spec.*",
+      "**/migrations/**"
+    ],
+    "languages": ["typescript", "javascript"],
+    "strictMode": false
+  },
+  "rules": {
+    "complexity": {
+      "enabled": true,
+      "threshold": 10,
+      "severity": "warning"
+    },
+    "documentation": {
+      "enabled": true,
+      "requireJSDoc": true,
+      "minCoverage": 80,
+      "publicOnly": true,
+      "severity": "warning"
+    },
+    "naming": {
+      "enabled": true,
+      "conventions": {
+        "classes": "PascalCase",
+        "functions": "camelCase",
+        "variables": "camelCase",
+        "constants": "UPPER_CASE",
+        "interfaces": "PascalCase"
+      }
+    },
+    "security": {
+      "enabled": true,
+      "severity": "error",
+      "detectHardcodedSecrets": true,
+      "detectSQLInjection": true,
+      "detectXSS": true
+    },
+    "performance": {
+      "enabled": true,
+      "detectMemoryLeaks": true,
+      "detectBlockingOperations": true
+    },
+    "functionLength": {
+      "enabled": true,
+      "maxLines": 50,
+      "severity": "warning"
+    },
+    "fileLength": {
+      "enabled": true,
+      "maxLines": 500,
+      "severity": "info"
+    },
+    "duplicateCode": {
+      "enabled": true,
+      "minTokens": 50,
+      "severity": "warning"
+    }
+  },
+  "autoFix": {
+    "enabled": false,
+    "dryRun": true,
+    "categories": ["documentation", "formatting", "imports"],
+    "createBackup": true
+  },
+  "output": {
+    "format": ["console", "html", "markdown"],
+    "directory": ".botbie/reports",
+    "quiet": false,
+    "verbose": false,
+    "groupBy": "severity",
+    "showStats": true
+  },
+  "integration": {
+    "git": {
+      "blame": false,
+      "commitCheck": false,
+      "preCommitHook": false
+    },
+    "ci": {
+      "failOnError": true,
+      "failOnWarning": false,
+      "annotations": true
+    }
+  },
+  "cache": {
+    "enabled": true,
+    "directory": ".botbie/cache",
+    "ttl": 3600
+  },
+  "customRules": {
+    "no-console-log": {
+      "pattern": "console\\.log",
+      "message": "Remove console.log statements",
+      "severity": "warning"
+    }
+  }
+}

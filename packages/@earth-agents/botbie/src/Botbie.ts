@@ -11,6 +11,8 @@ import {
 import { CodeParser } from './parsers/CodeParser';
 import { QualityAnalyzer } from './analyzers/QualityAnalyzer';
 import { ReportGenerator } from './reports/ReportGenerator';
+import { ConfigManager } from './config/ConfigManager';
+import { BotbieConfig as ConfigSchema } from './config/ConfigSchema';
 import chalk from 'chalk';
 
 export interface BotbieConfig extends Omit<AgentConfig, 'name' | 'description'> {
@@ -18,6 +20,7 @@ export interface BotbieConfig extends Omit<AgentConfig, 'name' | 'description'> 
   strictMode?: boolean;
   customRules?: string[];
   ignorePatterns?: string[];
+  configPath?: string;
 }
 
 export interface CodeHealthReport {
@@ -67,6 +70,8 @@ export class Botbie extends EarthAgent {
   private codeParser: CodeParser;
   private qualityAnalyzer: QualityAnalyzer;
   private reportGenerator: ReportGenerator;
+  private configManager: ConfigManager;
+  private configSchema: ConfigSchema | null = null;
   
   constructor(config: BotbieConfig = {} as BotbieConfig) {
     super({
@@ -79,6 +84,27 @@ export class Botbie extends EarthAgent {
     this.codeParser = new CodeParser();
     this.qualityAnalyzer = new QualityAnalyzer(this.knowledgeGraph);
     this.reportGenerator = new ReportGenerator();
+    this.configManager = new ConfigManager();
+  }
+  
+  async initialize(): Promise<void> {
+    // Load configuration
+    const cliConfig: Record<string, any> = {};
+    
+    if ((this.config as any).enableAutoFix !== undefined) {
+      cliConfig.autoFix = { enabled: (this.config as any).enableAutoFix };
+    }
+    
+    if ((this.config as any).strictMode !== undefined) {
+      cliConfig.analysis = { strictMode: (this.config as any).strictMode };
+    }
+    
+    this.configSchema = await this.configManager.loadConfig(cliConfig as Partial<ConfigSchema>);
+    
+    logger.info('Configuration loaded successfully');
+    
+    // Call parent initialize
+    await super.initialize();
   }
   
   protected async setupStrategies(): Promise<void> {
