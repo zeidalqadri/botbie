@@ -1,11 +1,22 @@
-# 🌍 DebugEarth Ecosystem
+# 🌍 Earth Agents Ecosystem
 
-A comprehensive debugging platform that treats every bug as a mystery to be solved with passion and mathematical precision!
+A comprehensive code health platform combining proactive quality analysis with reactive debugging capabilities!
 
 ## Projects
 
+### 🤖 [Botbie](./packages/@earth-agents/botbie/)
+Your proactive code quality guardian that ensures clean, robust, and beautifully structured codebases.
+
+**Key Features:**
+- 🧠 Knowledge Graph construction (Potpie-inspired)
+- 🔍 Multi-language code analysis
+- 📊 Quality metrics and scoring
+- 🐛 Code smell detection
+- 🔧 Automated fix suggestions
+- 📈 Beautiful HTML/Markdown reports
+
 ### 🔬 [DebugEarth Core](./debugearth/)
-The main debugging framework with methodical root cause analysis, evidence-based debugging, and mathematical proof generation.
+The reactive debugging expert with methodical root cause analysis and mathematical proof generation.
 
 **Key Features:**
 - 🕵️ Four specialized debugging strategies
@@ -16,23 +27,51 @@ The main debugging framework with methodical root cause analysis, evidence-based
 - 🌐 Cross-platform support (Node.js & browser)
 
 ### 🖥️ [VS Code Extension](./vscode-debugearth/)
-Native VS Code integration bringing DebugEarth's debugging capabilities directly into your development environment.
+Native VS Code integration bringing Earth Agents capabilities directly into your development environment.
 
 **Key Features:**
 - 📋 Interactive debugging sessions
-- 🚀 One-click session creation
-- 📊 Real-time evidence visualization
+- 🚀 One-click code analysis
+- 📊 Real-time quality monitoring
 - 🔄 Auto-refresh capabilities
 - ⚙️ Configuration integration
 - 🎨 Theme-aware interface
 
+### 🔗 [Unified CLI](./packages/@earth-agents/cli/)
+Single command-line interface for all Earth Agents features.
+
+**Key Features:**
+- 🎯 Unified `earth` command
+- 🔄 Integrated workflows
+- 📊 Combined reporting
+- ⚙️ Shared configuration
+- 🔌 Plugin architecture
+
 ## Quick Start
 
-### Install DebugEarth Core
+### Build Everything
 ```bash
-cd debugearth
+# Run the build script
+./build-and-test.sh
+
+# Or build manually:
 npm install
 npm run build
+```
+
+### Use the Unified CLI
+```bash
+# Analyze code quality
+earth analyze
+
+# Start debugging
+earth debug "Error description"
+
+# Monitor continuously
+earth monitor
+
+# Initialize configuration
+earth init
 ```
 
 ### Install VS Code Extension
@@ -41,13 +80,6 @@ cd vscode-debugearth
 npm install
 npm run compile
 # Press F5 in VS Code to launch Extension Development Host
-```
-
-### Set up Claude Desktop Integration
-```bash
-cd debugearth
-npm install -g .
-# Follow MCP-SETUP.md for Claude Desktop configuration
 ```
 
 ## Architecture
