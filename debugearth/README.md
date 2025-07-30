@@ -21,8 +21,11 @@ npm install debugearth
 ### For Claude Desktop (MCP)
 ```bash
 npm install -g debugearth
-# Then add to Claude Desktop config - see MCP-SETUP.md
+# Then add to Claude Desktop config - see claude-setup.md
 ```
+
+### As a Claude Agent
+DebugEarth is now available as a Claude agent! See [claude-setup.md](./claude-setup.md) for detailed setup instructions.
 
 ## Quick Start
 
@@ -253,43 +256,50 @@ MIT
 
 ---
 
-## Using with Claude Desktop
+## Using with Claude (Agent Mode)
 
-Once installed as an MCP server, you can use DebugEarth with Claude:
+DebugEarth is now a full Claude agent with enhanced debugging capabilities!
 
-### Slash Command: `/debug`
+### Quick Start with Claude
 
-```
-/debug - Enter DebugEarth mode
-/debug user data not loading - Start debugging specific issue  
-/debug analyze - Analyze current session
-/debug status - Check debugging progress
-```
+1. Install globally: `npm install -g debugearth`
+2. Add to Claude Desktop config (see [claude-setup.md](./claude-setup.md))
+3. Use the slash command: `/debug`
 
-### Example Claude Conversation
+### Example Claude Agent Session
 
 ```
-You: /debug my app crashes when clicking submit
+You: /debug TypeError: Cannot read property 'name' of undefined
 
-Claude: 🌍 DebugEarth activated! Starting debug session for "app crashes when clicking submit"
+Claude: 🌍 DebugEarth Investigation Started!
 
-I'll help you systematically find the root cause. First, let's collect evidence:
-1. What error do you see in the console?
-2. Can you share the stack trace?
-3. Does it happen every time or intermittently?
+Session ID: debug_abc123
 
-You: Here's the error: TypeError: Cannot read property 'submit' of null
-     at handleSubmit (form.js:23:15)
+I detect an error-related issue. Please provide the full error message and stack trace.
 
-Claude: 🔍 Analyzing... 
+**Next steps:**
+1. Provide the full error message and stack trace
+2. Check browser/application console for any warnings or errors
+3. Describe the exact steps that trigger the bug
 
-🎯 ROOT CAUSE FOUND!
-The form element is null when handleSubmit is called, likely due to:
-- Form being removed from DOM before submit
-- Event listener attached before form exists
-- Incorrect element selector
+You: [provides stack trace]
 
-✅ Solution: Add null check and ensure proper event binding...
+Claude: 📎 Clue added!
+
+I see a TypeError. The stack trace points to UserProfile.js:42:23.
+
+**New hypotheses:**
+1. User object is undefined when component renders
+2. Async data fetch hasn't completed before render
+
+[continues investigation with methodical approach...]
 ```
+
+### Agent Features
+
+- **🔍 Intelligent Investigation**: Guides you through evidence collection
+- **🧩 Smart Clue Analysis**: Interprets errors, logs, and behaviors
+- **🎯 Automated Root Cause Analysis**: Finds the true cause with confidence scores
+- **📋 Contextual Strategies**: Provides specific debugging techniques based on bug type
 
 *Remember: DebugEarth doesn't just debug - it treats each bug as a mystery to be solved with passion and mathematical precision!* 🌍🔍

@@ -1,0 +1,37 @@
+{
+  "name": "earth-agents",
+  "version": "1.0.0",
+  "description": "Earth Agents: A comprehensive debugging and code quality platform",
+  "private": true,
+  "workspaces": [
+    "packages/@earth-agents/*",
+    "debugearth",
+    "vscode-debugearth"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "test": "npm run test --workspaces",
+    "lint": "npm run lint --workspaces",
+    "dev": "npm run dev --workspaces --if-present",
+    "earth": "node packages/@earth-agents/cli/dist/index.js"
+  },
+  "keywords": [
+    "debugging",
+    "code-quality",
+    "static-analysis",
+    "developer-tools",
+    "ai-agents"
+  ],
+  "author": "Earth Agents Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.9.0",
+    "@typescript-eslint/eslint-plugin": "^6.11.0",
+    "@typescript-eslint/parser": "^6.11.0",
+    "eslint": "^8.53.0",
+    "jest": "^29.7.0",
+    "prettier": "^3.1.0",
+    "ts-jest": "^29.1.1",
+    "typescript": "^5.2.2"
+  }
+}

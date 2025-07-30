@@ -1,0 +1,73 @@
+{
+  "name": "debugearth",
+  "version": "1.0.0",
+  "description": "A methodical debug agent that digs deep to uncover root causes like exploring the depths of the earth",
+  "author": "DebugEarth Team",
+  "homepage": "https://github.com/debugearth/debugearth",
+  "license": "MIT",
+  "capabilities": {
+    "tools": true,
+    "resources": true,
+    "prompts": true
+  },
+  "server": {
+    "command": "node",
+    "args": ["dist/mcp-server.js"],
+    "env": {
+      "NODE_ENV": "production"
+    }
+  },
+  "tools": [
+    {
+      "name": "start_debug_session",
+      "description": "Start a new debugging session for a specific bug",
+      "category": "debugging"
+    },
+    {
+      "name": "analyze_session",
+      "description": "Analyze a debug session to find root cause",
+      "category": "debugging"
+    },
+    {
+      "name": "add_evidence",
+      "description": "Add evidence to a debugging session",
+      "category": "debugging"
+    },
+    {
+      "name": "get_session_status",
+      "description": "Get the current status of a debug session",
+      "category": "debugging"
+    },
+    {
+      "name": "list_sessions",
+      "description": "List all debugging sessions",
+      "category": "debugging"
+    },
+    {
+      "name": "simulate_error",
+      "description": "Simulate various types of errors for debugging practice",
+      "category": "testing"
+    }
+  ],
+  "prompts": [
+    {
+      "name": "debug",
+      "description": "Enter DebugEarth mode for methodical debugging",
+      "arguments": [
+        {
+          "name": "issue",
+          "description": "Description of the bug or issue to debug",
+          "required": false
+        }
+      ]
+    }
+  ],
+  "tags": [
+    "debugging",
+    "development",
+    "error-tracking",
+    "root-cause-analysis",
+    "performance",
+    "diagnostics"
+  ]
+}
