@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "botbie": {
+      "command": "node",
+      "args": ["./dist/mcp-server.js"],
+      "cwd": "./packages/@earth-agents/botbie",
+      "env": {
+        "NODE_ENV": "production"
+      }
+    }
+  }
+}

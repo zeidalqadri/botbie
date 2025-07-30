@@ -5,12 +5,15 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "botbie": "./dist/cli.js"
+    "botbie": "./dist/cli.js",
+    "botbie-mcp": "./dist/mcp-server.js"
   },
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
     "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
     "lint": "eslint src/**/*.ts"
   },
   "dependencies": {
@@ -21,9 +24,14 @@
     "commander": "^11.1.0",
     "glob": "^10.3.10",
     "ignore": "^5.3.0",
-    "ts-morph": "^21.0.1"
+    "ts-morph": "^21.0.1",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@types/glob": "^8.1.0"
+    "@jest/globals": "^29.7.0",
+    "@types/glob": "^8.1.0",
+    "@types/jest": "^30.0.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.4.0"
   }
 }

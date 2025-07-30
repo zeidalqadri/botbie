@@ -11,13 +11,16 @@ import {
 import { CodeParser } from './parsers/CodeParser';
 import { QualityAnalyzer } from './analyzers/QualityAnalyzer';
 import { ReportGenerator } from './reports/ReportGenerator';
+import { ConfigManager } from './config/ConfigManager';
+import { BotbieConfig as ConfigSchema } from './config/ConfigSchema';
 import chalk from 'chalk';
 
-export interface BotbieConfig extends AgentConfig {
+export interface BotbieConfig extends Omit<AgentConfig, 'name' | 'description'> {
   enableAutoFix?: boolean;
   strictMode?: boolean;
   customRules?: string[];
   ignorePatterns?: string[];
+  configPath?: string;
 }
 
 export interface CodeHealthReport {
@@ -67,23 +70,62 @@ export class Botbie extends EarthAgent {
   private codeParser: CodeParser;
   private qualityAnalyzer: QualityAnalyzer;
   private reportGenerator: ReportGenerator;
+  private configManager: ConfigManager;
+  private configSchema: ConfigSchema | null = null;
   
-  constructor(config: BotbieConfig = {}) {
+  constructor(config: BotbieConfig = {} as BotbieConfig) {
     super({
-      ...config,
-      description: config.description || 'The proactive code quality guardian'
+      name: 'Botbie',
+      description: 'The proactive code quality guardian',
+      ...config
     });
     
     this.knowledgeGraph = new KnowledgeGraph();
     this.codeParser = new CodeParser();
     this.qualityAnalyzer = new QualityAnalyzer(this.knowledgeGraph);
     this.reportGenerator = new ReportGenerator();
+    this.configManager = new ConfigManager();
+  }
+  
+  async initialize(): Promise<void> {
+    // Load configuration
+    const cliConfig: Record<string, any> = {};
+    
+    if ((this.config as any).enableAutoFix !== undefined) {
+      cliConfig.autoFix = { enabled: (this.config as any).enableAutoFix };
+    }
+    
+    if ((this.config as any).strictMode !== undefined) {
+      cliConfig.analysis = { strictMode: (this.config as any).strictMode };
+    }
+    
+    this.configSchema = await this.configManager.loadConfig(cliConfig as Partial<ConfigSchema>);
+    
+    logger.info('Configuration loaded successfully');
+    
+    // Call parent initialize
+    await super.initialize();
   }
   
   protected async setupStrategies(): Promise<void> {
-    // Strategies will be implemented in separate files
-    // For now, we'll add them as we implement them
     logger.info('Setting up Botbie strategies...');
+    
+    // Import and register all strategies
+    const { ArchitectureArcheologist } = await import('./strategies/ArchitectureArcheologist');
+    const { CleanCodeDetective } = await import('./strategies/CleanCodeDetective');
+    const { SecuritySentinel } = await import('./strategies/SecuritySentinel');
+    const { PerformanceOptimizer } = await import('./strategies/PerformanceOptimizer');
+    const { DocumentationLibrarian } = await import('./strategies/DocumentationLibrarian');
+    
+    this.strategies = [
+      new ArchitectureArcheologist(),
+      new CleanCodeDetective(),
+      new SecuritySentinel(),
+      new PerformanceOptimizer(),
+      new DocumentationLibrarian()
+    ];
+    
+    logger.info(`Registered ${this.strategies.length} analysis strategies`);
   }
   
   async execute(input: { path: string; options?: any }): Promise<CodeHealthReport> {
@@ -98,9 +140,34 @@ export class Botbie extends EarthAgent {
       console.log(chalk.blue('\n🔍 Analyzing code quality...'));
       const issues = await this.analyzeCodeQuality(session.id);
       
+      // Step 2.5: Run specialized strategies
+      console.log(chalk.blue('\n🎯 Running specialized analysis strategies...'));
+      const strategyResults = await this.runStrategies({ graph: this.knowledgeGraph });
+      
+      // Merge strategy findings into issues
+      strategyResults.forEach(result => {
+        if (result.success && result.findings) {
+          issues.push(...result.findings);
+        }
+      });
+      
       // Step 3: Generate suggestions
       console.log(chalk.blue('\n💡 Generating improvement suggestions...'));
       const suggestions = await this.generateSuggestions(session.id);
+      
+      // Add strategy suggestions
+      strategyResults.forEach(result => {
+        if (result.success && result.suggestions) {
+          result.suggestions.forEach((s: string) => {
+            suggestions.push({
+              type: 'strategy',
+              description: s,
+              impact: 'medium',
+              effort: 'medium'
+            });
+          });
+        }
+      });
       
       // Step 4: Calculate metrics
       console.log(chalk.blue('\n📈 Calculating project metrics...'));
@@ -162,7 +229,7 @@ export class Botbie extends EarthAgent {
     const issues: CodeIssue[] = [];
     
     // Analyze each node in the graph
-    const nodes = Array.from(this.knowledgeGraph['graph'].nodes.values());
+    const nodes = this.knowledgeGraph.getAllNodes();
     
     for (const node of nodes) {
       const nodeIssues = await this.qualityAnalyzer.analyzeNode(node);
@@ -199,8 +266,8 @@ export class Botbie extends EarthAgent {
     }
     
     // Testing suggestions
-    const testFiles = Array.from(this.knowledgeGraph['graph'].nodes.values())
-      .filter(n => n.filePath.includes('test') || n.filePath.includes('spec'));
+    const testFiles = this.knowledgeGraph.getAllNodes()
+      .filter((n: CodeNode) => n.filePath.includes('test') || n.filePath.includes('spec'));
     
     if (testFiles.length < stats.totalNodes * 0.3) {
       suggestions.push({
@@ -212,8 +279,8 @@ export class Botbie extends EarthAgent {
     }
     
     // Documentation suggestions
-    const undocumentedNodes = Array.from(this.knowledgeGraph['graph'].nodes.values())
-      .filter(n => !n.quality || n.quality.documentationScore < 0.5);
+    const undocumentedNodes = this.knowledgeGraph.getAllNodes()
+      .filter((n: CodeNode) => !n.quality || n.quality.documentationScore < 0.5);
     
     if (undocumentedNodes.length > stats.totalNodes * 0.5) {
       suggestions.push({
@@ -234,13 +301,13 @@ export class Botbie extends EarthAgent {
   }
   
   private async calculateMetrics(): Promise<ProjectMetrics> {
-    const nodes = Array.from(this.knowledgeGraph['graph'].nodes.values());
+    const nodes = this.knowledgeGraph.getAllNodes();
     
     let totalLOC = 0;
     let totalComplexity = 0;
     let totalMaintainability = 0;
     
-    nodes.forEach(node => {
+    nodes.forEach((node: CodeNode) => {
       if (node.quality) {
         totalLOC += node.quality.linesOfCode || 0;
         totalComplexity += node.quality.complexity || 0;
@@ -253,7 +320,7 @@ export class Botbie extends EarthAgent {
     
     return {
       linesOfCode: totalLOC,
-      fileCount: new Set(nodes.map(n => n.filePath)).size,
+      fileCount: new Set(nodes.map((n: CodeNode) => n.filePath)).size,
       complexityScore: avgComplexity,
       maintainabilityIndex: avgMaintainability,
       technicalDebt: this.calculateTechnicalDebt(avgComplexity, avgMaintainability)

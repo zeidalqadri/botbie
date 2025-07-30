@@ -18,7 +18,7 @@ export class QualityAnalyzer {
     
     // Check for code smells
     if (metrics.codeSmells.length > 0) {
-      metrics.codeSmells.forEach(smell => {
+      metrics.codeSmells.forEach((smell: CodeSmell) => {
         issues.push({
           id: uuidv4(),
           type: smell.type,
@@ -83,7 +83,7 @@ export class QualityAnalyzer {
     
     // Check for circular dependencies
     const circularDeps = this.findCircularDependencies();
-    circularDeps.forEach(cycle => {
+    circularDeps.forEach((cycle: string[]) => {
       issues.push({
         id: uuidv4(),
         type: 'circular-dependency',
@@ -97,7 +97,7 @@ export class QualityAnalyzer {
     
     // Check for god classes
     const godClasses = this.findGodClasses();
-    godClasses.forEach(({ node, methodCount }) => {
+    godClasses.forEach(({ node, methodCount }: { node: CodeNode; methodCount: number }) => {
       issues.push({
         id: uuidv4(),
         type: 'god-class',
@@ -112,7 +112,7 @@ export class QualityAnalyzer {
     
     // Check for duplicate code
     const duplicates = this.findDuplicateCode();
-    duplicates.forEach(dup => {
+    duplicates.forEach((dup: { file1: string; line1: number; file2: string; line2: number }) => {
       issues.push({
         id: uuidv4(),
         type: 'duplicate-code',
@@ -127,7 +127,7 @@ export class QualityAnalyzer {
     
     // Check for unused code
     const unusedCode = this.findUnusedCode();
-    unusedCode.forEach(node => {
+    unusedCode.forEach((node: CodeNode) => {
       issues.push({
         id: uuidv4(),
         type: 'unused-code',
@@ -152,9 +152,16 @@ export class QualityAnalyzer {
     
     // Calculate cyclomatic complexity (simplified)
     let complexity = 1;
-    const complexityKeywords = ['if', 'else', 'for', 'while', 'case', 'catch', '&&', '||', '?'];
-    complexityKeywords.forEach(keyword => {
+    const complexityKeywords = ['if', 'else', 'for', 'while', 'case', 'catch'];
+    const specialPatterns = ['&&', '||', '\\?'];
+    
+    complexityKeywords.forEach((keyword: string) => {
       const regex = new RegExp(`\\b${keyword}\\b`, 'g');
+      complexity += (node.content.match(regex) || []).length;
+    });
+    
+    specialPatterns.forEach((pattern: string) => {
+      const regex = new RegExp(pattern, 'g');
       complexity += (node.content.match(regex) || []).length;
     });
     
@@ -246,7 +253,7 @@ export class QualityAnalyzer {
     
     // Check each module for cycles
     const modules = this.knowledgeGraph.getNodesByType('module');
-    modules.forEach(module => {
+    modules.forEach((module: CodeNode) => {
       if (!visited.has(module.id)) {
         hasCycle(module.id);
       }
@@ -259,9 +266,9 @@ export class QualityAnalyzer {
     const godClasses: Array<{ node: CodeNode; methodCount: number }> = [];
     const classes = this.knowledgeGraph.getNodesByType('class');
     
-    classes.forEach(classNode => {
+    classes.forEach((classNode: CodeNode) => {
       const methods = this.knowledgeGraph.getRelatedNodes(classNode.id, 'defines')
-        .filter(n => n.type === 'function');
+        .filter((n: CodeNode) => n.type === 'function');
       
       if (methods.length > 20) {
         godClasses.push({ node: classNode, methodCount: methods.length });
@@ -300,13 +307,13 @@ export class QualityAnalyzer {
   
   private findUnusedCode(): CodeNode[] {
     const unused: CodeNode[] = [];
-    const allNodes = Array.from(this.knowledgeGraph['graph'].nodes.values());
+    const allNodes = Array.from(this.knowledgeGraph['graph'].nodes.values()) as CodeNode[];
     
-    allNodes.forEach(node => {
+    allNodes.forEach((node: CodeNode) => {
       if (node.type === 'function' || node.type === 'class') {
         // Check if anything references this node
         const references = this.knowledgeGraph['graph'].edges
-          .filter(e => e.targetId === node.id && e.type !== 'defines')
+          .filter((e: any) => e.targetId === node.id && e.type !== 'defines')
           .length;
         
         // Exclude exported/public members (simplified check)
@@ -350,7 +357,7 @@ export class QualityAnalyzer {
     const magicNumberRegex = /\b\d+\b/g;
     const matches = content.match(magicNumberRegex) || [];
     
-    return matches.filter(num => {
+    return matches.filter((num: string) => {
       const n = parseInt(num);
       // Exclude common non-magic numbers
       return n !== 0 && n !== 1 && n !== -1 && n !== 2;

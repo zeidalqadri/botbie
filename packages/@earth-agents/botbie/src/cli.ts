@@ -73,11 +73,78 @@ program
   });
 
 program
+  .command('validate [config]')
+  .description('Validate a Botbie configuration file')
+  .action(async (configPath = '.botbie.json') => {
+    console.log(chalk.cyan(`\n🔍 Validating ${configPath}...\n`));
+    
+    try {
+      const fs = await import('fs');
+      const path = await import('path');
+      const { ConfigManager } = await import('./config/ConfigManager');
+      
+      const fullPath = path.resolve(configPath);
+      
+      if (!fs.existsSync(fullPath)) {
+        throw new Error(`Configuration file not found: ${fullPath}`);
+      }
+      
+      const content = fs.readFileSync(fullPath, 'utf-8');
+      const config = JSON.parse(content);
+      
+      const configManager = new ConfigManager();
+      const validatedConfig = configManager.validateConfig(config);
+      
+      console.log(chalk.green('✅ Configuration is valid!\n'));
+      console.log(chalk.gray('Configuration summary:'));
+      console.log(chalk.gray(`- Version: ${validatedConfig.version}`));
+      console.log(chalk.gray(`- Languages: ${validatedConfig.analysis.languages.join(', ')}`));
+      console.log(chalk.gray(`- Rules enabled: ${Object.entries(validatedConfig.rules).filter(([_, r]) => r.enabled).length}`));
+      console.log(chalk.gray(`- Auto-fix: ${validatedConfig.autoFix.enabled ? 'enabled' : 'disabled'}`));
+      console.log(chalk.gray(`- Output formats: ${validatedConfig.output.format.join(', ')}`));
+      
+    } catch (error: any) {
+      console.error(chalk.red('❌ Configuration validation failed:\n'));
+      
+      if (error.name === 'ZodError') {
+        error.errors.forEach((err: any) => {
+          console.error(chalk.red(`  - ${err.path.join('.')}: ${err.message}`));
+        });
+      } else {
+        console.error(chalk.red(`  ${error.message}`));
+      }
+      
+      process.exit(1);
+    }
+  });
+
+program
   .command('init')
   .description('Initialize Botbie configuration in the current project')
-  .action(async () => {
-    console.log(chalk.green('\n📝 Creating .botbie.json configuration...\n'));
-    // TODO: Create default configuration file
+  .option('-p, --preset <preset>', 'Configuration preset (recommended, strict, minimal)', 'recommended')
+  .option('-f, --file <path>', 'Configuration file path', '.botbie.json')
+  .action(async (options) => {
+    console.log(chalk.cyan('\n🚀 Initializing Botbie configuration...\n'));
+    
+    try {
+      const { ConfigManager } = await import('./config/ConfigManager');
+      const configManager = new ConfigManager();
+      
+      await configManager.createDefaultConfig(options.file, options.preset);
+      
+      console.log(chalk.gray('\nNext steps:'));
+      console.log(chalk.gray('1. Review and customize your .botbie.json file'));
+      console.log(chalk.gray('2. Run `botbie analyze` to analyze your codebase'));
+      console.log(chalk.gray('3. Run `botbie analyze --fix` to auto-fix issues\n'));
+    } catch (error: any) {
+      if (error.message.includes('already exists')) {
+        console.error(chalk.yellow('⚠️  Configuration file already exists'));
+        console.error(chalk.gray('Use --file flag to specify a different path'));
+      } else {
+        console.error(chalk.red('❌ Failed to create configuration:'), error.message);
+      }
+      process.exit(1);
+    }
   });
 
 program.parse(process.argv);
