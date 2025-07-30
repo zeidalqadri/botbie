@@ -7,6 +7,12 @@ export interface Evidence {
   data: any;
   context: Record<string, any>;
   correlationId?: string;
+  // Cross-agent enhancement fields
+  agentSource?: 'botbie' | 'debugearth' | 'system';
+  crossAgentId?: string; // ID for cross-referencing between agents
+  relatedFindings?: string[]; // IDs of related findings from other agents
+  confidence?: number; // Confidence score (0-1)
+  impact?: 'low' | 'medium' | 'high' | 'critical';
 }
 
 export interface Hypothesis {
@@ -25,6 +31,33 @@ export interface Session {
   hypotheses: Hypothesis[];
   evidence: Evidence[];
   status: 'active' | 'resolved' | 'exploring';
+  // Cross-agent enhancement fields
+  parentSessionId?: string; // For linked sessions across agents
+  agentType?: 'botbie' | 'debugearth' | 'unified';
+  crossAgentInsights?: CrossAgentInsight[];
+  relatedSessions?: string[]; // IDs of related sessions from other agents
+}
+
+// Cross-agent insight sharing interface
+export interface CrossAgentInsight {
+  id: string;
+  sourceAgent: 'botbie' | 'debugearth';
+  targetAgent: 'botbie' | 'debugearth' | 'all';
+  type: 'pattern' | 'bug-fix' | 'quality-rule' | 'architecture-violation' | 'performance-issue';
+  title: string;
+  description: string;
+  evidence: Evidence[];
+  recommendations: string[];
+  confidence: number;
+  impact: 'low' | 'medium' | 'high' | 'critical';
+  timestamp: Date;
+  metadata: {
+    filePattern?: string;
+    codePattern?: string;
+    errorPattern?: string;
+    frequency?: number;
+    affectedFiles?: string[];
+  };
 }
 
 export interface AgentConfig {
