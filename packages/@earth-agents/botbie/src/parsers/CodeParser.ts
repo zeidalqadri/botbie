@@ -106,7 +106,7 @@ export class CodeParser {
     nodes.push(moduleNode);
     
     // Parse classes
-    sourceFile.getClasses().forEach(classDecl => {
+    sourceFile.getClasses().forEach((classDecl) => {
       const classNode: CodeNode = {
         id: uuidv4(),
         name: classDecl.getName() || 'Anonymous',
@@ -128,7 +128,7 @@ export class CodeParser {
       });
       
       // Parse methods
-      classDecl.getMethods().forEach(method => {
+      classDecl.getMethods().forEach((method) => {
         const methodNode: CodeNode = {
           id: uuidv4(),
           name: method.getName() || 'Anonymous',
@@ -151,7 +151,7 @@ export class CodeParser {
     });
     
     // Parse functions
-    sourceFile.getFunctions().forEach(func => {
+    sourceFile.getFunctions().forEach((func) => {
       const funcNode: CodeNode = {
         id: uuidv4(),
         name: func.getName() || 'Anonymous',
@@ -173,7 +173,7 @@ export class CodeParser {
     });
     
     // Parse interfaces
-    sourceFile.getInterfaces().forEach(iface => {
+    sourceFile.getInterfaces().forEach((iface) => {
       const ifaceNode: CodeNode = {
         id: uuidv4(),
         name: iface.getName(),
@@ -195,7 +195,7 @@ export class CodeParser {
     });
     
     // Parse type aliases
-    sourceFile.getTypeAliases().forEach(typeAlias => {
+    sourceFile.getTypeAliases().forEach((typeAlias) => {
       const typeNode: CodeNode = {
         id: uuidv4(),
         name: typeAlias.getName(),
@@ -222,19 +222,19 @@ export class CodeParser {
   async buildRelationships(graph: KnowledgeGraph): Promise<void> {
     // Build import relationships
     for (const sourceFile of this.project.getSourceFiles()) {
-      const moduleNode = Array.from(graph['graph'].nodes.values())
-        .find(n => n.filePath === sourceFile.getFilePath() && n.type === 'module');
+      const moduleNode = (Array.from(graph['graph'].nodes.values()) as CodeNode[])
+        .find((n: CodeNode) => n.filePath === sourceFile.getFilePath() && n.type === 'module');
       
       if (!moduleNode) continue;
       
       // Process imports
-      sourceFile.getImportDeclarations().forEach(importDecl => {
+      sourceFile.getImportDeclarations().forEach((importDecl) => {
         const moduleSpecifier = importDecl.getModuleSpecifierValue();
         
         // Find target module
         const targetPath = this.resolveImportPath(sourceFile.getFilePath(), moduleSpecifier);
-        const targetNode = Array.from(graph['graph'].nodes.values())
-          .find(n => n.filePath === targetPath && n.type === 'module');
+        const targetNode = (Array.from(graph['graph'].nodes.values()) as CodeNode[])
+          .find((n: CodeNode) => n.filePath === targetPath && n.type === 'module');
         
         if (targetNode) {
           graph.addRelationship({

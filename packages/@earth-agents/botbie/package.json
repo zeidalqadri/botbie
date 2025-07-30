@@ -5,7 +5,8 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "botbie": "./dist/cli.js"
+    "botbie": "./dist/cli.js",
+    "botbie-mcp": "./dist/mcp-server.js"
   },
   "scripts": {
     "build": "tsc",

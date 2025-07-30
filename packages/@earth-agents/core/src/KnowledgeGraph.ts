@@ -248,6 +248,16 @@ export class KnowledgeGraph {
     };
   }
   
+  // Get all nodes
+  getAllNodes(): CodeNode[] {
+    return Array.from(this.graph.nodes.values());
+  }
+  
+  // Get all edges
+  getAllEdges(): Relationship[] {
+    return this.graph.edges;
+  }
+  
   // Clear the graph
   clear(): void {
     this.graph.nodes.clear();
