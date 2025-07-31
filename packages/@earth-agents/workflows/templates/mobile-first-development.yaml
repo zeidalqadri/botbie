@@ -1,0 +1,366 @@
+id: mobile-first-development
+name: Mobile-First Development
+description: Build responsive, performant mobile-first applications with progressive enhancement
+category: mobile
+tier: professional
+tags:
+  - mobile-first
+  - responsive-design
+  - pwa
+  - performance
+  - touch-optimization
+  - offline-first
+industry:
+  - e-commerce
+  - media
+  - saas
+  - consumer-apps
+estimatedTime: 4-8 hours
+difficulty: intermediate
+
+config:
+  parallelExecution: true
+  maxRetries: 2
+  timeoutMinutes: 480
+  customSettings:
+    targetDevices:
+      - mobile-small: 320px
+      - mobile-medium: 375px
+      - mobile-large: 425px
+      - tablet: 768px
+      - desktop: 1024px
+    performanceTargets:
+      mobile:
+        fcp: 1.0
+        lcp: 2.0
+        tti: 3.5
+        bundleSize: 150000
+      desktop:
+        fcp: 1.5
+        lcp: 2.5
+        tti: 4.0
+        bundleSize: 300000
+    offlineFeatures:
+      - service-worker
+      - cache-first
+      - background-sync
+      - push-notifications
+
+triggers:
+  - type: manual
+    config:
+      requiredInputs:
+        - projectType
+        - designSource
+        - targetPlatforms
+  - type: git-hook
+    config:
+      branches: [develop, feature/mobile-*]
+      events: [push]
+
+nodes:
+  # Step 1: Mobile-First Design Analysis
+  - id: design-analysis
+    name: Analyze Mobile-First Design
+    description: Extract mobile-optimized components and patterns
+    type: analysis
+    agent: sketchie
+    action: analyzeMobileDesign
+    inputs:
+      designSource: ${inputs.designSource}
+      analysis:
+        - touch-targets
+        - gesture-areas
+        - thumb-zones
+        - viewport-usage
+        - scroll-patterns
+        - navigation-patterns
+      breakpoints: ${config.customSettings.targetDevices}
+
+  # Step 2: Component Architecture
+  - id: component-architecture
+    name: Mobile Component Architecture
+    description: Design component structure for mobile-first approach
+    type: action
+    dependsOn: [design-analysis]
+    agent: sketchie
+    action: designMobileArchitecture
+    inputs:
+      components: ${nodes.design-analysis.outputs.components}
+      strategy:
+        - progressive-enhancement
+        - atomic-design
+        - container-queries
+        - intrinsic-design
+      optimization:
+        - lazy-loading
+        - code-splitting
+        - tree-shaking
+
+  # Step 3: Touch-Optimized UI
+  - id: touch-ui
+    name: Generate Touch-Optimized UI
+    description: Create components optimized for touch interaction
+    type: parallel
+    dependsOn: [component-architecture]
+    tasks:
+      - agent: sketchie
+        action: generateTouchComponents
+        inputs:
+          components: ${nodes.component-architecture.outputs.components}
+          requirements:
+            minTouchTarget: 44px
+            gestureSupport: true
+            hapticFeedback: true
+            swipeActions: true
+      - agent: sketchie
+        action: optimizeInteractions
+        inputs:
+          interactions:
+            - tap-delay-elimination
+            - scroll-optimization
+            - gesture-recognition
+            - pull-to-refresh
+
+  # Step 4: Responsive Implementation
+  - id: responsive-implementation
+    name: Implement Responsive Design
+    description: Create responsive layouts with mobile-first CSS
+    type: action
+    dependsOn: [touch-ui]
+    agent: sketchie
+    action: implementResponsive
+    inputs:
+      components: ${nodes.touch-ui.outputs.components}
+      approach: mobile-first
+      techniques:
+        - fluid-typography
+        - flexible-grids
+        - container-queries
+        - aspect-ratio-boxes
+        - viewport-units
+      cssStrategy:
+        - min-width-queries
+        - progressive-enhancement
+        - critical-css
+
+  # Step 5: Performance Optimization
+  - id: mobile-performance
+    name: Mobile Performance Optimization
+    description: Optimize for mobile network and device constraints
+    type: parallel
+    dependsOn: [responsive-implementation]
+    tasks:
+      - agent: sketchie
+        action: optimizeImages
+        inputs:
+          techniques:
+            - responsive-images
+            - webp-conversion
+            - lazy-loading
+            - blur-up-technique
+            - art-direction
+      - agent: sketchie
+        action: optimizeBundle
+        inputs:
+          targets: ${config.customSettings.performanceTargets.mobile}
+          techniques:
+            - route-splitting
+            - vendor-splitting
+            - dynamic-imports
+            - webpack-optimization
+      - agent: sketchie
+        action: optimizeFonts
+        inputs:
+          strategies:
+            - font-display-swap
+            - subset-fonts
+            - variable-fonts
+            - system-font-stack
+
+  # Step 6: PWA Implementation
+  - id: pwa-implementation
+    name: Progressive Web App Setup
+    description: Implement PWA features for app-like experience
+    type: parallel
+    dependsOn: [mobile-performance]
+    conditions:
+      - field: inputs.enablePWA
+        operator: not_equals
+        value: false
+        action: continue
+    tasks:
+      - agent: orchestrator
+        action: setupServiceWorker
+        inputs:
+          strategies:
+            - cache-first
+            - network-first
+            - stale-while-revalidate
+          features:
+            - offline-pages
+            - background-sync
+            - push-notifications
+      - agent: orchestrator
+        action: createManifest
+        inputs:
+          appInfo: ${inputs.appInfo}
+          icons: ${generateIcons()}
+          display: standalone
+          themeColor: ${inputs.themeColor}
+
+  # Step 7: Touch Testing
+  - id: touch-testing
+    name: Touch and Gesture Testing
+    description: Test touch interactions and gestures
+    type: parallel
+    dependsOn: [touch-ui]
+    tasks:
+      - agent: debugearth
+        action: testTouchTargets
+        inputs:
+          minSize: 44px
+          spacing: 8px
+          overlap: false
+      - agent: debugearth
+        action: testGestures
+        inputs:
+          gestures:
+            - swipe
+            - pinch
+            - double-tap
+            - long-press
+          devices: ${config.customSettings.targetDevices}
+
+  # Step 8: Device Testing
+  - id: device-testing
+    name: Real Device Testing
+    description: Test on actual mobile devices
+    type: parallel
+    dependsOn: [pwa-implementation]
+    agent: debugearth
+    action: runDeviceTests
+    inputs:
+      devices:
+        - ios-safari
+        - android-chrome
+        - ios-chrome
+        - android-firefox
+      tests:
+        - performance
+        - touch-responsiveness
+        - orientation-changes
+        - network-conditions
+        - battery-usage
+
+  # Step 9: Accessibility Mobile
+  - id: mobile-accessibility
+    name: Mobile Accessibility Testing
+    description: Ensure mobile accessibility compliance
+    type: action
+    dependsOn: [responsive-implementation]
+    agent: sketchie
+    action: checkMobileAccessibility
+    inputs:
+      standards:
+        - wcag-mobile
+        - touch-accessibility
+        - screen-reader-mobile
+      checks:
+        - zoom-functionality
+        - orientation-support
+        - motion-preferences
+        - color-contrast
+
+  # Step 10: Offline Functionality
+  - id: offline-functionality
+    name: Implement Offline Features
+    description: Enable offline-first functionality
+    type: action
+    dependsOn: [pwa-implementation]
+    agent: orchestrator
+    action: implementOffline
+    inputs:
+      features:
+        - offline-detection
+        - data-sync
+        - conflict-resolution
+        - queue-management
+      storage:
+        - indexeddb
+        - cache-api
+        - localstorage-fallback
+
+  # Step 11: Performance Monitoring
+  - id: performance-monitoring
+    name: Setup Performance Monitoring
+    description: Monitor real-world mobile performance
+    type: action
+    dependsOn: [device-testing]
+    agent: orchestrator
+    action: setupMonitoring
+    inputs:
+      metrics:
+        - core-web-vitals
+        - custom-metrics
+        - user-timing
+        - resource-timing
+      tools:
+        - lighthouse-ci
+        - webpagetest
+        - real-user-monitoring
+
+  # Step 12: Final Validation
+  - id: final-validation
+    name: Final Mobile Validation
+    description: Comprehensive mobile readiness check
+    type: merge
+    dependsOn: [mobile-accessibility, offline-functionality, performance-monitoring]
+    agent: orchestrator
+    action: validateMobileReadiness
+    inputs:
+      checks:
+        - performance-budgets
+        - accessibility-scores
+        - offline-capabilities
+        - device-compatibility
+        - app-store-readiness
+
+outputs:
+  - name: Mobile App Bundle
+    type: artifact
+    format: zip
+    destination: ${outputs.artifactPath}/mobile-app.zip
+  
+  - name: PWA Package
+    type: artifact
+    format: zip
+    destination: ${outputs.artifactPath}/pwa-package.zip
+  
+  - name: Performance Report
+    type: report
+    format: html
+    destination: ${outputs.reportPath}/mobile-performance.html
+  
+  - name: Device Test Results
+    type: report
+    format: json
+    destination: ${outputs.reportPath}/device-tests.json
+  
+  - name: Accessibility Report
+    type: report
+    format: pdf
+    destination: ${outputs.reportPath}/mobile-accessibility.pdf
+  
+  - name: Lighthouse Reports
+    type: report
+    format: html
+    destination: ${outputs.reportPath}/lighthouse/
+
+metrics:
+  successRate: 94.7
+  averageExecutionTime: 360
+  totalExecutions: 3421
+  userRating: 4.7
+  mobileScoreImprovement: 35%
+  offlineCapability: 98%

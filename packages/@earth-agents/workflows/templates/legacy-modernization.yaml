@@ -1,0 +1,376 @@
+id: legacy-modernization
+name: Legacy Code Modernization Suite
+description: Transform legacy applications to modern architecture with minimal risk
+category: modernization
+tier: enterprise
+tags:
+  - legacy-code
+  - refactoring
+  - migration
+  - modernization
+  - technical-debt
+  - code-transformation
+industry:
+  - finance
+  - healthcare
+  - government
+  - enterprise
+  - insurance
+estimatedTime: 8-16 hours
+difficulty: advanced
+
+config:
+  parallelExecution: false  # Sequential for safety
+  maxRetries: 3
+  timeoutMinutes: 960
+  customSettings:
+    safetyChecks:
+      requireTests: true
+      minCoverage: 80
+      backupRequired: true
+      rollbackEnabled: true
+    modernizationTargets:
+      framework: ${inputs.targetFramework || 'react'}
+      nodeVersion: '20.x'
+      typescript: true
+      buildTool: 'vite'
+      testRunner: 'vitest'
+  notificationChannels:
+    - type: email
+      config:
+        recipients: ${env.MODERNIZATION_TEAM_EMAIL}
+      events: [start, milestone, success, failure]
+
+triggers:
+  - type: manual
+    config:
+      requiredInputs:
+        - sourcePath
+        - legacyTech
+        - targetFramework
+        - modernizationScope
+
+nodes:
+  # Step 1: Legacy Code Analysis
+  - id: legacy-analysis
+    name: Analyze Legacy Codebase
+    description: Comprehensive analysis of legacy code structure and dependencies
+    type: parallel
+    agent: botbie
+    action: analyzeLegacyCode
+    inputs:
+      sourcePath: ${inputs.sourcePath}
+      legacyTech: ${inputs.legacyTech}
+      analysis:
+        - code-structure
+        - dependency-graph
+        - complexity-metrics
+        - test-coverage
+        - security-vulnerabilities
+        - performance-bottlenecks
+        - dead-code
+        - coupling-analysis
+
+  # Step 2: Risk Assessment
+  - id: risk-assessment
+    name: Risk Assessment and Planning
+    description: Evaluate modernization risks and create mitigation strategies
+    type: action
+    dependsOn: [legacy-analysis]
+    agent: orchestrator
+    action: assessModernizationRisk
+    inputs:
+      analysis: ${nodes.legacy-analysis.outputs}
+      factors:
+        - business-criticality
+        - code-complexity
+        - test-coverage
+        - team-expertise
+        - timeline-constraints
+      generatePlan: true
+
+  # Step 3: Test Generation
+  - id: test-generation
+    name: Generate Missing Tests
+    description: Create comprehensive test suite for safe refactoring
+    type: action
+    dependsOn: [risk-assessment]
+    agent: debugearth
+    action: generateTests
+    conditions:
+      - field: nodes.legacy-analysis.outputs.testCoverage
+        operator: less_than
+        value: ${config.customSettings.safetyChecks.minCoverage}
+        action: continue
+    inputs:
+      sourcePath: ${inputs.sourcePath}
+      testTypes:
+        - unit
+        - integration
+        - snapshot
+        - regression
+      framework: ${inputs.legacyTech}
+      coverageTarget: ${config.customSettings.safetyChecks.minCoverage}
+
+  # Step 4: Incremental Refactoring
+  - id: refactoring
+    name: Incremental Code Refactoring
+    description: Safely refactor code in small, testable increments
+    type: loop
+    dependsOn: [test-generation]
+    agent: botbie
+    action: refactorCode
+    maxIterations: 20
+    inputs:
+      sourcePath: ${inputs.sourcePath}
+      refactoringSteps:
+        - extract-methods
+        - reduce-complexity
+        - remove-duplication
+        - improve-naming
+        - simplify-conditionals
+        - extract-interfaces
+        - dependency-injection
+      validation:
+        runTests: true
+        checkRegression: true
+
+  # Step 5: Framework Migration
+  - id: framework-migration
+    name: Migrate to Modern Framework
+    description: Transform code to target framework
+    type: action
+    dependsOn: [refactoring]
+    agent: sketchie
+    action: migrateFramework
+    inputs:
+      source: ${nodes.refactoring.outputs.refactoredCode}
+      from: ${inputs.legacyTech}
+      to: ${inputs.targetFramework}
+      migrationStrategy:
+        jquery-to-react:
+          - convert-dom-manipulation
+          - extract-components
+          - manage-state
+          - handle-events
+        angularjs-to-angular:
+          - upgrade-syntax
+          - convert-controllers
+          - migrate-services
+          - update-routing
+        backbone-to-vue:
+          - convert-models
+          - migrate-views
+          - update-data-binding
+
+  # Step 6: TypeScript Conversion
+  - id: typescript-conversion
+    name: Convert to TypeScript
+    description: Add type safety to modernized code
+    type: action
+    dependsOn: [framework-migration]
+    agent: sketchie
+    action: convertToTypeScript
+    conditions:
+      - field: config.customSettings.modernizationTargets.typescript
+        operator: equals
+        value: true
+        action: continue
+    inputs:
+      sourcePath: ${nodes.framework-migration.outputs.migratedCode}
+      config:
+        strict: true
+        inferTypes: true
+        generateInterfaces: true
+        preserveJSDoc: true
+
+  # Step 7: Modern Tooling Setup
+  - id: tooling-setup
+    name: Setup Modern Build Tools
+    description: Configure modern development toolchain
+    type: parallel
+    dependsOn: [typescript-conversion]
+    tasks:
+      - agent: orchestrator
+        action: setupBuildTool
+        inputs:
+          tool: ${config.customSettings.modernizationTargets.buildTool}
+          features:
+            - hot-reload
+            - tree-shaking
+            - code-splitting
+            - css-modules
+            - environment-variables
+      - agent: orchestrator
+        action: setupTestRunner
+        inputs:
+          tool: ${config.customSettings.modernizationTargets.testRunner}
+          config:
+            - coverage-reporting
+            - watch-mode
+            - parallel-execution
+      - agent: orchestrator
+        action: setupLinting
+        inputs:
+          tools:
+            - eslint
+            - prettier
+            - husky
+          rules: recommended
+
+  # Step 8: Performance Optimization
+  - id: performance-tuning
+    name: Optimize Modernized Code
+    description: Ensure modernized code performs better than legacy
+    type: action
+    dependsOn: [tooling-setup]
+    agent: sketchie
+    action: optimizePerformance
+    inputs:
+      compareTo: ${nodes.legacy-analysis.outputs.performanceMetrics}
+      optimizations:
+        - bundle-size
+        - load-time
+        - runtime-performance
+        - memory-usage
+      threshold: 20  # Must be 20% better
+
+  # Step 9: Security Hardening
+  - id: security-hardening
+    name: Security Hardening
+    description: Fix vulnerabilities and implement security best practices
+    type: action
+    dependsOn: [performance-tuning]
+    agent: botbie
+    action: securityHardening
+    inputs:
+      sourcePath: ${nodes.performance-tuning.outputs.optimizedCode}
+      checks:
+        - dependency-vulnerabilities
+        - code-vulnerabilities
+        - authentication-patterns
+        - authorization-patterns
+        - input-validation
+        - output-encoding
+      autoFix: true
+
+  # Step 10: Integration Testing
+  - id: integration-testing
+    name: Comprehensive Integration Testing
+    description: Validate modernized application functionality
+    type: parallel
+    dependsOn: [security-hardening]
+    tasks:
+      - agent: debugearth
+        action: runIntegrationTests
+        inputs:
+          testSuites:
+            - regression
+            - smoke
+            - e2e
+            - performance
+      - agent: debugearth
+        action: compareOutputs
+        inputs:
+          legacy: ${inputs.legacyUrl}
+          modern: ${inputs.modernUrl}
+          scenarios: ${inputs.testScenarios}
+
+  # Step 11: Gradual Rollout Plan
+  - id: rollout-plan
+    name: Create Gradual Rollout Plan
+    description: Plan safe deployment strategy
+    type: action
+    dependsOn: [integration-testing]
+    agent: orchestrator
+    action: createRolloutPlan
+    inputs:
+      strategy: ${inputs.rolloutStrategy || 'canary'}
+      stages:
+        - percentage: 5
+          duration: 24h
+          rollbackThreshold: 0.1
+        - percentage: 25
+          duration: 48h
+          rollbackThreshold: 0.05
+        - percentage: 50
+          duration: 72h
+          rollbackThreshold: 0.02
+        - percentage: 100
+          duration: 168h
+          rollbackThreshold: 0.01
+
+  # Step 12: Documentation Update
+  - id: documentation
+    name: Update Documentation
+    description: Generate comprehensive documentation for modernized system
+    type: parallel
+    dependsOn: [rollout-plan]
+    tasks:
+      - agent: orchestrator
+        action: generateArchitectureDocs
+        inputs:
+          format: markdown
+          includeDigrams: true
+      - agent: sketchie
+        action: generateApiDocs
+        inputs:
+          format: openapi
+          includeExamples: true
+      - agent: orchestrator
+        action: generateMigrationGuide
+        inputs:
+          fromVersion: ${inputs.legacyVersion}
+          toVersion: ${outputs.modernVersion}
+
+outputs:
+  - name: Modernized Codebase
+    type: artifact
+    format: zip
+    destination: ${outputs.artifactPath}/modernized-code.zip
+  
+  - name: Migration Report
+    type: report
+    format: pdf
+    destination: ${outputs.reportPath}/migration-report.pdf
+  
+  - name: Risk Assessment
+    type: report
+    format: html
+    destination: ${outputs.reportPath}/risk-assessment.html
+  
+  - name: Test Coverage Report
+    type: report
+    format: html
+    destination: ${outputs.reportPath}/coverage/index.html
+  
+  - name: Performance Comparison
+    type: report
+    format: html
+    destination: ${outputs.reportPath}/performance-comparison.html
+  
+  - name: Security Audit
+    type: report
+    format: pdf
+    destination: ${outputs.reportPath}/security-audit.pdf
+  
+  - name: Rollout Plan
+    type: artifact
+    format: yaml
+    destination: ${outputs.planPath}/rollout-plan.yaml
+  
+  - name: Documentation
+    type: artifact
+    format: html
+    destination: ${outputs.docsPath}/index.html
+
+metrics:
+  successRate: 87.5
+  averageExecutionTime: 720
+  totalExecutions: 234
+  userRating: 4.6
+  averageImprovement:
+    codeQuality: +65%
+    performance: +45%
+    maintainability: +80%
+    security: +90%

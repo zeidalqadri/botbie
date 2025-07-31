@@ -1,0 +1,363 @@
+id: internationalization
+name: Internationalization Workflow
+description: Complete i18n/l10n implementation for global application deployment
+category: internationalization
+tier: professional
+tags:
+  - i18n
+  - l10n
+  - translation
+  - localization
+  - multi-language
+  - rtl-support
+  - cultural-adaptation
+industry:
+  - global-enterprise
+  - e-commerce
+  - saas
+  - media
+  - education
+estimatedTime: 4-8 hours
+difficulty: intermediate
+
+config:
+  parallelExecution: true
+  maxRetries: 2
+  timeoutMinutes: 480
+  customSettings:
+    targetLocales:
+      - en-US
+      - es-ES
+      - fr-FR
+      - de-DE
+      - ja-JP
+      - zh-CN
+      - ar-SA
+      - he-IL
+    translationServices:
+      primary: deepl
+      fallback: google-translate
+      human-review: true
+    localizationFeatures:
+      - text-translation
+      - date-formatting
+      - number-formatting
+      - currency-formatting
+      - rtl-support
+      - cultural-images
+      - legal-compliance
+
+triggers:
+  - type: manual
+    config:
+      requiredInputs:
+        - projectPath
+        - targetLocales
+        - primaryLocale
+  - type: git-hook
+    config:
+      branches: [main, release/*]
+      events: [push]
+      files: ['**/*.tsx', '**/*.ts', '**/*.json']
+
+nodes:
+  # Step 1: I18n Audit
+  - id: i18n-audit
+    name: Internationalization Audit
+    description: Analyze codebase for i18n readiness
+    type: parallel
+    agent: botbie
+    action: auditI18n
+    inputs:
+      projectPath: ${inputs.projectPath}
+      analysis:
+        - hardcoded-strings
+        - date-formatting
+        - number-formatting
+        - currency-usage
+        - timezone-handling
+        - locale-assumptions
+        - image-text
+        - concatenated-strings
+
+  # Step 2: String Extraction
+  - id: string-extraction
+    name: Extract Translatable Strings
+    description: Extract all strings requiring translation
+    type: action
+    dependsOn: [i18n-audit]
+    agent: orchestrator
+    action: extractStrings
+    inputs:
+      sources: ${nodes.i18n-audit.outputs.files}
+      extraction:
+        - ui-text
+        - error-messages
+        - help-text
+        - tooltips
+        - placeholders
+        - aria-labels
+        - meta-tags
+      format: ${inputs.translationFormat || 'json'}
+
+  # Step 3: I18n Setup
+  - id: i18n-setup
+    name: Setup I18n Infrastructure
+    description: Configure i18n framework and tooling
+    type: parallel
+    dependsOn: [string-extraction]
+    tasks:
+      - agent: orchestrator
+        action: setupI18nFramework
+        inputs:
+          framework: ${detectFramework()}
+          library: ${inputs.i18nLibrary || 'react-i18next'}
+          config:
+            - namespace-structure
+            - lazy-loading
+            - fallback-language
+            - detection-strategy
+      - agent: sketchie
+        action: setupRTL
+        inputs:
+          rtlLocales: ${filterRTLLocales(inputs.targetLocales)}
+          features:
+            - direction-switching
+            - layout-mirroring
+            - icon-flipping
+
+  # Step 4: Component Refactoring
+  - id: component-refactoring
+    name: Refactor Components for I18n
+    description: Update components to use i18n system
+    type: loop
+    dependsOn: [i18n-setup]
+    agent: sketchie
+    action: refactorForI18n
+    maxIterations: ${nodes.i18n-audit.outputs.componentCount}
+    inputs:
+      component: ${currentComponent}
+      refactoring:
+        - replace-hardcoded-text
+        - add-translation-keys
+        - format-dates-numbers
+        - handle-pluralization
+        - implement-context
+
+  # Step 5: Translation Process
+  - id: translation
+    name: Translate Content
+    description: Translate strings to target locales
+    type: parallel
+    dependsOn: [component-refactoring]
+    agent: orchestrator
+    action: translateContent
+    inputs:
+      sourceLocale: ${inputs.primaryLocale}
+      targetLocales: ${inputs.targetLocales}
+      strings: ${nodes.string-extraction.outputs.strings}
+      strategy:
+        - machine-translation
+        - translation-memory
+        - glossary-terms
+        - context-aware
+      quality:
+        - grammar-check
+        - consistency-check
+        - length-validation
+
+  # Step 6: Cultural Adaptation
+  - id: cultural-adaptation
+    name: Cultural Adaptation
+    description: Adapt content for cultural appropriateness
+    type: parallel
+    dependsOn: [translation]
+    tasks:
+      - agent: sketchie
+        action: adaptImages
+        inputs:
+          images: ${detectLocalizedImages()}
+          adaptations:
+            - cultural-symbols
+            - local-models
+            - color-meanings
+            - gesture-appropriateness
+      - agent: orchestrator
+        action: adaptContent
+        inputs:
+          content: ${nodes.translation.outputs.translations}
+          checks:
+            - cultural-sensitivity
+            - local-regulations
+            - market-preferences
+
+  # Step 7: Formatting Implementation
+  - id: formatting
+    name: Implement Locale Formatting
+    description: Setup locale-specific formatting
+    type: parallel
+    dependsOn: [i18n-setup]
+    tasks:
+      - agent: orchestrator
+        action: setupDateFormatting
+        inputs:
+          locales: ${inputs.targetLocales}
+          formats:
+            - short-date
+            - long-date
+            - time
+            - datetime
+            - relative-time
+      - agent: orchestrator
+        action: setupNumberFormatting
+        inputs:
+          locales: ${inputs.targetLocales}
+          formats:
+            - decimal
+            - percent
+            - currency
+            - compact-notation
+
+  # Step 8: Testing
+  - id: i18n-testing
+    name: Internationalization Testing
+    description: Test i18n implementation
+    type: parallel
+    dependsOn: [formatting, cultural-adaptation]
+    tasks:
+      - agent: debugearth
+        action: testTranslations
+        inputs:
+          locales: ${inputs.targetLocales}
+          tests:
+            - missing-translations
+            - translation-keys
+            - interpolation
+            - pluralization
+            - context-switching
+      - agent: debugearth
+        action: testFormatting
+        inputs:
+          locales: ${inputs.targetLocales}
+          scenarios:
+            - date-boundaries
+            - number-edge-cases
+            - currency-display
+            - rtl-layout
+
+  # Step 9: Performance Optimization
+  - id: i18n-performance
+    name: Optimize I18n Performance
+    description: Optimize loading and runtime performance
+    type: action
+    dependsOn: [i18n-testing]
+    agent: sketchie
+    action: optimizeI18n
+    inputs:
+      optimizations:
+        - lazy-load-translations
+        - bundle-splitting
+        - cache-strategy
+        - cdn-deployment
+      targets:
+        initialLoadTime: 100ms
+        switchingTime: 50ms
+
+  # Step 10: Accessibility Validation
+  - id: i18n-accessibility
+    name: Validate I18n Accessibility
+    description: Ensure accessibility in all locales
+    type: parallel
+    dependsOn: [i18n-testing]
+    agent: sketchie
+    action: validateI18nAccessibility
+    inputs:
+      locales: ${inputs.targetLocales}
+      checks:
+        - screen-reader-support
+        - rtl-navigation
+        - translated-aria-labels
+        - keyboard-shortcuts
+        - focus-management
+
+  # Step 11: Legal Compliance
+  - id: legal-compliance
+    name: Legal and Compliance Check
+    description: Ensure legal compliance for target markets
+    type: action
+    dependsOn: [cultural-adaptation]
+    agent: orchestrator
+    action: checkLegalCompliance
+    inputs:
+      markets: ${inputs.targetMarkets}
+      compliance:
+        - privacy-laws
+        - cookie-consent
+        - terms-of-service
+        - data-localization
+        - content-restrictions
+
+  # Step 12: Deployment Setup
+  - id: deployment-setup
+    name: Setup Locale Deployment
+    description: Configure deployment for multiple locales
+    type: action
+    dependsOn: [i18n-performance, legal-compliance]
+    agent: orchestrator
+    action: setupLocaleDeployment
+    inputs:
+      strategy: ${inputs.deploymentStrategy || 'subdomain'}
+      options:
+        - locale-detection
+        - geo-routing
+        - cdn-configuration
+        - seo-optimization
+      monitoring:
+        - locale-usage
+        - performance-metrics
+        - error-tracking
+
+outputs:
+  - name: Localized Application
+    type: artifact
+    format: zip
+    destination: ${outputs.artifactPath}/localized-app.zip
+  
+  - name: Translation Files
+    type: artifact
+    format: zip
+    destination: ${outputs.translationPath}/translations.zip
+  
+  - name: I18n Report
+    type: report
+    format: pdf
+    destination: ${outputs.reportPath}/i18n-report.pdf
+  
+  - name: Coverage Report
+    type: report
+    format: html
+    destination: ${outputs.reportPath}/i18n-coverage.html
+  
+  - name: Compliance Report
+    type: report
+    format: pdf
+    destination: ${outputs.reportPath}/compliance-report.pdf
+  
+  - name: Performance Report
+    type: report
+    format: json
+    destination: ${outputs.metricsPath}/i18n-performance.json
+  
+  - name: Deployment Config
+    type: artifact
+    format: yaml
+    destination: ${outputs.configPath}/locale-deployment.yaml
+
+metrics:
+  successRate: 93.6
+  averageExecutionTime: 360
+  totalExecutions: 2341
+  userRating: 4.6
+  translationAccuracy: 94.2
+  localesCovered: 47
+  performanceImpact: +12%

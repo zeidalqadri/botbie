@@ -1,0 +1,332 @@
+id: performance-optimization
+name: Performance Optimization Pipeline
+description: Comprehensive performance analysis and optimization for web applications
+category: performance
+tier: professional
+tags:
+  - performance
+  - optimization
+  - bundle-size
+  - render-time
+  - core-web-vitals
+  - lighthouse
+industry:
+  - e-commerce
+  - saas
+  - media
+  - fintech
+estimatedTime: 2-5 hours
+difficulty: advanced
+
+config:
+  parallelExecution: true
+  maxRetries: 2
+  timeoutMinutes: 300
+  customSettings:
+    performanceTargets:
+      lighthouse:
+        performance: 90
+        accessibility: 95
+        bestPractices: 90
+        seo: 90
+      bundleSize:
+        initial: 200000  # 200KB
+        lazy: 100000     # 100KB per chunk
+      metrics:
+        fcp: 1.8         # First Contentful Paint
+        lcp: 2.5         # Largest Contentful Paint
+        fid: 100         # First Input Delay
+        cls: 0.1         # Cumulative Layout Shift
+        ttfb: 0.8        # Time to First Byte
+
+triggers:
+  - type: manual
+    config:
+      requiredInputs:
+        - projectPath
+        - targetEnvironment
+  - type: git-hook
+    config:
+      branches: [main, release/*]
+      events: [pre-push]
+  - type: schedule
+    config:
+      cron: "0 0 * * 1"  # Weekly performance audit
+
+nodes:
+  # Step 1: Initial Performance Audit
+  - id: initial-audit
+    name: Initial Performance Audit
+    description: Comprehensive performance baseline measurement
+    type: parallel
+    agent: sketchie
+    action: performanceAudit
+    inputs:
+      projectPath: ${inputs.projectPath}
+      environment: ${inputs.targetEnvironment}
+      metrics:
+        - bundle-analysis
+        - runtime-performance
+        - network-waterfall
+        - memory-profiling
+        - cpu-profiling
+      tools:
+        - lighthouse
+        - webpack-bundle-analyzer
+        - chrome-devtools
+
+  # Step 2: Code Analysis
+  - id: code-analysis
+    name: Static Code Analysis
+    description: Analyze code for performance anti-patterns
+    type: parallel
+    dependsOn: [initial-audit]
+    tasks:
+      - agent: botbie
+        action: analyzePerformance
+        inputs:
+          path: ${inputs.projectPath}
+          checks:
+            - large-dependencies
+            - unused-exports
+            - circular-dependencies
+            - synchronous-operations
+            - memory-leaks
+            - excessive-re-renders
+      - agent: sketchie
+        action: analyzeComponents
+        inputs:
+          path: ${inputs.projectPath}
+          performanceChecks:
+            - render-complexity
+            - prop-drilling
+            - state-management
+            - memoization-opportunities
+
+  # Step 3: Bundle Optimization
+  - id: bundle-optimization
+    name: Bundle Size Optimization
+    description: Optimize JavaScript bundle size and loading strategy
+    type: action
+    dependsOn: [code-analysis]
+    agent: sketchie
+    action: optimizeBundle
+    inputs:
+      projectPath: ${inputs.projectPath}
+      strategies:
+        - tree-shaking
+        - code-splitting
+        - dynamic-imports
+        - vendor-splitting
+        - compression
+        - minification
+      targets:
+        mainBundle: ${config.customSettings.performanceTargets.bundleSize.initial}
+        chunkSize: ${config.customSettings.performanceTargets.bundleSize.lazy}
+
+  # Step 4: Asset Optimization
+  - id: asset-optimization
+    name: Asset Optimization
+    description: Optimize images, fonts, and other static assets
+    type: parallel
+    dependsOn: [initial-audit]
+    tasks:
+      - agent: sketchie
+        action: optimizeImages
+        inputs:
+          assetsPath: ${inputs.projectPath}/public
+          formats:
+            - webp
+            - avif
+          techniques:
+            - compression
+            - lazy-loading
+            - responsive-images
+            - sprite-generation
+      - agent: sketchie
+        action: optimizeFonts
+        inputs:
+          fontsPath: ${inputs.projectPath}/assets/fonts
+          techniques:
+            - subsetting
+            - preloading
+            - variable-fonts
+            - fallback-fonts
+
+  # Step 5: Runtime Optimization
+  - id: runtime-optimization
+    name: Runtime Performance Optimization
+    description: Optimize runtime performance and rendering
+    type: action
+    dependsOn: [code-analysis]
+    agent: sketchie
+    action: optimizeRuntime
+    inputs:
+      components: ${nodes.code-analysis.outputs.components}
+      optimizations:
+        - react-memo
+        - use-callback
+        - use-memo
+        - virtual-scrolling
+        - debouncing
+        - throttling
+        - web-workers
+        - request-animation-frame
+
+  # Step 6: Critical Path Optimization
+  - id: critical-path
+    name: Critical Rendering Path Optimization
+    description: Optimize the critical rendering path
+    type: action
+    dependsOn: [bundle-optimization, asset-optimization]
+    agent: orchestrator
+    action: optimizeCriticalPath
+    inputs:
+      projectPath: ${inputs.projectPath}
+      techniques:
+        - inline-critical-css
+        - preload-critical-resources
+        - defer-non-critical
+        - eliminate-render-blocking
+        - optimize-css-delivery
+        - prioritize-visible-content
+
+  # Step 7: Caching Strategy
+  - id: caching-strategy
+    name: Implement Caching Strategy
+    description: Set up optimal caching for assets and API responses
+    type: action
+    dependsOn: [critical-path]
+    agent: orchestrator
+    action: implementCaching
+    inputs:
+      strategies:
+        - browser-caching
+        - service-worker
+        - cdn-caching
+        - api-caching
+        - state-persistence
+      policies:
+        static: "public, max-age=31536000, immutable"
+        dynamic: "private, max-age=3600, must-revalidate"
+        api: "private, max-age=300, stale-while-revalidate=86400"
+
+  # Step 8: Performance Testing
+  - id: performance-testing
+    name: Performance Testing
+    description: Run comprehensive performance tests
+    type: parallel
+    dependsOn: [runtime-optimization, caching-strategy]
+    tasks:
+      - agent: debugearth
+        action: loadTesting
+        inputs:
+          url: ${inputs.targetUrl}
+          scenarios:
+            - name: normal-load
+              users: 100
+              duration: 300
+            - name: peak-load
+              users: 1000
+              duration: 600
+      - agent: debugearth
+        action: syntheticMonitoring
+        inputs:
+          url: ${inputs.targetUrl}
+          locations:
+            - us-east
+            - eu-west
+            - asia-pacific
+          devices:
+            - desktop
+            - mobile
+            - tablet
+
+  # Step 9: Core Web Vitals Optimization
+  - id: web-vitals
+    name: Core Web Vitals Optimization
+    description: Optimize for Google's Core Web Vitals
+    type: action
+    dependsOn: [performance-testing]
+    agent: sketchie
+    action: optimizeWebVitals
+    conditions:
+      - field: nodes.performance-testing.outputs.webVitals.passed
+        operator: equals
+        value: false
+        action: continue
+    inputs:
+      metrics: ${nodes.performance-testing.outputs.webVitals}
+      targets: ${config.customSettings.performanceTargets.metrics}
+      techniques:
+        lcp:
+          - optimize-hero-image
+          - preload-largest-element
+          - reduce-server-response-time
+        fid:
+          - break-up-long-tasks
+          - optimize-js-execution
+          - use-web-workers
+        cls:
+          - set-size-attributes
+          - reserve-layout-space
+          - avoid-layout-shifts
+
+  # Step 10: Final Validation
+  - id: final-validation
+    name: Final Performance Validation
+    description: Validate all performance improvements
+    type: merge
+    dependsOn: [web-vitals]
+    agent: orchestrator
+    action: validatePerformance
+    inputs:
+      targets: ${config.customSettings.performanceTargets}
+      generateReport: true
+      comparisons:
+        - baseline: ${nodes.initial-audit.outputs}
+        - optimized: current
+      certification:
+        lighthouse: true
+        webVitals: true
+
+outputs:
+  - name: Performance Report
+    type: report
+    format: html
+    destination: ${outputs.reportPath}/performance-report.html
+  
+  - name: Bundle Analysis
+    type: report
+    format: html
+    destination: ${outputs.reportPath}/bundle-analysis.html
+  
+  - name: Optimization Summary
+    type: report
+    format: pdf
+    destination: ${outputs.reportPath}/optimization-summary.pdf
+  
+  - name: Performance Metrics
+    type: metric
+    format: json
+    destination: ${outputs.metricsPath}/performance-metrics.json
+  
+  - name: Lighthouse Report
+    type: report
+    format: html
+    destination: ${outputs.reportPath}/lighthouse-report.html
+  
+  - name: Monitoring Dashboard
+    type: artifact
+    format: url
+    destination: ${outputs.dashboardUrl}/performance
+
+metrics:
+  successRate: 92.3
+  averageExecutionTime: 180
+  totalExecutions: 3847
+  userRating: 4.7
+  averageImprovement:
+    bundleSize: -42%
+    loadTime: -38%
+    lighthouse: +25

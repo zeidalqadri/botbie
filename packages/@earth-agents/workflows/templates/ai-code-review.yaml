@@ -1,0 +1,333 @@
+id: ai-code-review
+name: AI-Assisted Code Review
+description: Intelligent automated code review with actionable feedback and auto-fixes
+category: collaboration
+tier: professional
+tags:
+  - code-review
+  - ai-powered
+  - pull-request
+  - quality-gates
+  - automated-feedback
+  - best-practices
+industry:
+  - technology
+  - enterprise
+  - startup
+  - open-source
+estimatedTime: 15-60 minutes
+difficulty: intermediate
+
+config:
+  parallelExecution: true
+  maxRetries: 1
+  timeoutMinutes: 60
+  customSettings:
+    reviewDepth: comprehensive  # quick, standard, comprehensive
+    autoApprove:
+      enabled: false
+      conditions:
+        - no-critical-issues
+        - test-coverage-maintained
+        - performance-not-degraded
+    reviewAreas:
+      - code-quality
+      - security
+      - performance
+      - accessibility
+      - best-practices
+      - documentation
+      - testing
+    aiModels:
+      primary: gpt-4
+      fallback: claude-3
+    codeContext:
+      lines: 500
+      relatedFiles: true
+
+triggers:
+  - type: git-hook
+    config:
+      events: [pull_request, merge_request]
+      branches: [main, develop, release/*]
+  - type: manual
+    config:
+      requiredInputs:
+        - pullRequestUrl
+        - reviewType
+
+nodes:
+  # Step 1: PR Context Analysis
+  - id: context-analysis
+    name: Analyze Pull Request Context
+    description: Understand the changes and their impact
+    type: analysis
+    agent: orchestrator
+    action: analyzePRContext
+    inputs:
+      prUrl: ${inputs.pullRequestUrl}
+      analysis:
+        - changed-files
+        - commit-messages
+        - pr-description
+        - related-issues
+        - previous-reviews
+        - author-history
+      depth: ${config.customSettings.reviewDepth}
+
+  # Step 2: Multi-Agent Analysis
+  - id: multi-agent-analysis
+    name: Multi-Agent Code Analysis
+    description: Parallel analysis by specialized agents
+    type: parallel
+    dependsOn: [context-analysis]
+    tasks:
+      - agent: botbie
+        action: analyzeCodeQuality
+        inputs:
+          files: ${nodes.context-analysis.outputs.changedFiles}
+          checks:
+            - complexity
+            - duplication
+            - naming
+            - structure
+            - patterns
+      - agent: botbie
+        action: securityReview
+        inputs:
+          files: ${nodes.context-analysis.outputs.changedFiles}
+          focus:
+            - vulnerabilities
+            - secure-coding
+            - authentication
+            - authorization
+      - agent: sketchie
+        action: uiCodeReview
+        inputs:
+          files: ${nodes.context-analysis.outputs.uiFiles}
+          checks:
+            - component-quality
+            - accessibility
+            - performance
+            - styling-consistency
+      - agent: debugearth
+        action: testAnalysis
+        inputs:
+          files: ${nodes.context-analysis.outputs.testFiles}
+          checks:
+            - coverage-impact
+            - test-quality
+            - edge-cases
+
+  # Step 3: AI Deep Review
+  - id: ai-deep-review
+    name: AI-Powered Deep Review
+    description: Advanced pattern recognition and suggestion generation
+    type: action
+    dependsOn: [multi-agent-analysis]
+    agent: orchestrator
+    action: aiDeepReview
+    inputs:
+      context: ${nodes.context-analysis.outputs}
+      agentFindings: ${nodes.multi-agent-analysis.outputs}
+      model: ${config.customSettings.aiModels.primary}
+      review:
+        - logic-errors
+        - edge-cases
+        - optimization-opportunities
+        - alternative-approaches
+        - potential-bugs
+        - code-smells
+
+  # Step 4: Best Practices Check
+  - id: best-practices
+    name: Best Practices Validation
+    description: Check adherence to team and industry standards
+    type: parallel
+    dependsOn: [ai-deep-review]
+    tasks:
+      - agent: botbie
+        action: checkCodingStandards
+        inputs:
+          standards: ${inputs.codingStandards || 'default'}
+          strict: ${inputs.strictMode || false}
+      - agent: orchestrator
+        action: checkArchitecture
+        inputs:
+          patterns: ${inputs.architecturePatterns}
+          principles:
+            - solid
+            - dry
+            - kiss
+            - yagni
+
+  # Step 5: Performance Impact
+  - id: performance-impact
+    name: Performance Impact Analysis
+    description: Analyze performance implications of changes
+    type: action
+    dependsOn: [multi-agent-analysis]
+    agent: sketchie
+    action: analyzePerformanceImpact
+    inputs:
+      changes: ${nodes.context-analysis.outputs.changedFiles}
+      metrics:
+        - bundle-size-delta
+        - render-impact
+        - memory-usage
+        - api-calls
+      threshold: ${inputs.performanceThreshold || 10}
+
+  # Step 6: Automated Fixes
+  - id: auto-fixes
+    name: Generate Automated Fixes
+    description: Create fixes for identified issues
+    type: action
+    dependsOn: [best-practices, performance-impact]
+    agent: botbie
+    action: generateFixes
+    conditions:
+      - field: ${aggregateIssues().autoFixable}
+        operator: greater_than
+        value: 0
+        action: continue
+    inputs:
+      issues: ${aggregateIssues()}
+      fixTypes:
+        - formatting
+        - naming
+        - simple-refactoring
+        - import-optimization
+        - type-additions
+        - documentation
+      validateFixes: true
+
+  # Step 7: Review Summary Generation
+  - id: review-summary
+    name: Generate Review Summary
+    description: Create comprehensive review feedback
+    type: action
+    dependsOn: [auto-fixes]
+    agent: orchestrator
+    action: generateReviewSummary
+    inputs:
+      findings: ${aggregateAllFindings()}
+      format: ${inputs.summaryFormat || 'markdown'}
+      sections:
+        - overview
+        - critical-issues
+        - suggestions
+        - nitpicks
+        - positive-feedback
+        - learning-opportunities
+      tone: ${inputs.reviewTone || 'constructive'}
+
+  # Step 8: Comment Generation
+  - id: comment-generation
+    name: Generate Inline Comments
+    description: Create contextual inline comments
+    type: action
+    dependsOn: [review-summary]
+    agent: orchestrator
+    action: generateComments
+    inputs:
+      findings: ${aggregateAllFindings()}
+      style: ${inputs.commentStyle || 'educational'}
+      options:
+        - include-examples
+        - suggest-alternatives
+        - link-resources
+        - explain-why
+      maxCommentsPerFile: ${inputs.maxComments || 10}
+
+  # Step 9: Learning Extraction
+  - id: learning-extraction
+    name: Extract Learning Opportunities
+    description: Identify patterns for team learning
+    type: action
+    dependsOn: [comment-generation]
+    agent: orchestrator
+    action: extractLearnings
+    inputs:
+      review: ${nodes.review-summary.outputs}
+      patterns:
+        - common-mistakes
+        - good-practices
+        - new-patterns
+        - team-knowledge-gaps
+      shareWith: ${inputs.sharelearnings || 'team'}
+
+  # Step 10: Review Posting
+  - id: review-posting
+    name: Post Review to PR
+    description: Submit review feedback to pull request
+    type: action
+    dependsOn: [comment-generation]
+    agent: orchestrator
+    action: postReview
+    inputs:
+      prUrl: ${inputs.pullRequestUrl}
+      summary: ${nodes.review-summary.outputs.summary}
+      comments: ${nodes.comment-generation.outputs.comments}
+      status: ${determineReviewStatus()}
+      labels: ${generateLabels()}
+
+  # Step 11: Follow-up Actions
+  - id: follow-up
+    name: Setup Follow-up Actions
+    description: Create tasks and notifications
+    type: parallel
+    dependsOn: [review-posting]
+    conditions:
+      - field: nodes.review-summary.outputs.requiresFollowUp
+        operator: equals
+        value: true
+        action: continue
+    tasks:
+      - agent: orchestrator
+        action: createTasks
+        inputs:
+          issues: ${nodes.review-summary.outputs.actionableItems}
+          assignTo: ${inputs.taskAssignee || 'author'}
+      - agent: orchestrator
+        action: scheduleFollowUp
+        inputs:
+          timing: ${inputs.followUpTiming || '24h'}
+          checkFor:
+            - issue-resolution
+            - response-to-feedback
+
+outputs:
+  - name: Review Report
+    type: report
+    format: markdown
+    destination: ${outputs.reportPath}/code-review.md
+  
+  - name: Inline Comments
+    type: artifact
+    format: json
+    destination: ${outputs.artifactPath}/review-comments.json
+  
+  - name: Auto-fixes Patch
+    type: artifact
+    format: diff
+    destination: ${outputs.artifactPath}/auto-fixes.patch
+  
+  - name: Learning Summary
+    type: report
+    format: markdown
+    destination: ${outputs.reportPath}/learnings.md
+  
+  - name: Metrics Report
+    type: report
+    format: json
+    destination: ${outputs.metricsPath}/review-metrics.json
+
+metrics:
+  successRate: 97.8
+  averageExecutionTime: 25
+  totalExecutions: 12453
+  userRating: 4.8
+  issuesFoundPerPR: 8.3
+  autoFixRate: 42.7
+  falsePositiveRate: 3.2

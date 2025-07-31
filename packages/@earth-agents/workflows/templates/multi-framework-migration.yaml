@@ -1,0 +1,375 @@
+id: multi-framework-migration
+name: Multi-Framework Migration
+description: Seamlessly migrate applications between different frameworks with minimal disruption
+category: migration
+tier: professional
+tags:
+  - framework-migration
+  - code-transformation
+  - react-to-vue
+  - angular-to-react
+  - vue-to-react
+  - gradual-migration
+industry:
+  - enterprise
+  - saas
+  - agency
+  - technology
+estimatedTime: 6-12 hours
+difficulty: advanced
+
+config:
+  parallelExecution: false
+  maxRetries: 2
+  timeoutMinutes: 720
+  customSettings:
+    migrationStrategies:
+      - strangler-fig
+      - big-bang
+      - gradual-component
+      - micro-frontend
+    supportedMigrations:
+      react-to-vue:
+        complexity: medium
+        tools: ['react2vue', 'jsx-transformer']
+      vue-to-react:
+        complexity: medium
+        tools: ['vue2react', 'template-converter']
+      angular-to-react:
+        complexity: high
+        tools: ['ng-react', 'service-converter']
+      react-to-angular:
+        complexity: high
+        tools: ['react2ng', 'hooks-to-services']
+      jquery-to-react:
+        complexity: high
+        tools: ['jquery-analyzer', 'dom-to-jsx']
+      vanilla-to-framework:
+        complexity: medium
+        tools: ['component-extractor', 'state-analyzer']
+
+triggers:
+  - type: manual
+    config:
+      requiredInputs:
+        - sourceFramework
+        - targetFramework
+        - projectPath
+        - migrationStrategy
+
+nodes:
+  # Step 1: Migration Feasibility Analysis
+  - id: feasibility-analysis
+    name: Migration Feasibility Analysis
+    description: Assess migration complexity and create roadmap
+    type: analysis
+    agent: orchestrator
+    action: analyzeMigrationFeasibility
+    inputs:
+      sourceFramework: ${inputs.sourceFramework}
+      targetFramework: ${inputs.targetFramework}
+      projectPath: ${inputs.projectPath}
+      analysis:
+        - codebase-size
+        - dependency-analysis
+        - component-complexity
+        - state-management
+        - routing-complexity
+        - third-party-integrations
+        - custom-patterns
+
+  # Step 2: Dependency Mapping
+  - id: dependency-mapping
+    name: Map Dependencies and Libraries
+    description: Create mapping between source and target framework dependencies
+    type: action
+    dependsOn: [feasibility-analysis]
+    agent: botbie
+    action: mapDependencies
+    inputs:
+      source: ${inputs.sourceFramework}
+      target: ${inputs.targetFramework}
+      dependencies: ${nodes.feasibility-analysis.outputs.dependencies}
+      mapping:
+        - direct-equivalents
+        - alternative-libraries
+        - custom-implementations
+        - deprecated-features
+
+  # Step 3: Component Analysis
+  - id: component-analysis
+    name: Analyze Component Structure
+    description: Deep analysis of component architecture
+    type: parallel
+    dependsOn: [dependency-mapping]
+    tasks:
+      - agent: sketchie
+        action: analyzeComponentStructure
+        inputs:
+          projectPath: ${inputs.projectPath}
+          framework: ${inputs.sourceFramework}
+          extract:
+            - component-hierarchy
+            - props-interfaces
+            - state-management
+            - lifecycle-methods
+            - event-handlers
+      - agent: botbie
+        action: analyzePatterns
+        inputs:
+          projectPath: ${inputs.projectPath}
+          patterns:
+            - design-patterns
+            - state-patterns
+            - routing-patterns
+            - communication-patterns
+
+  # Step 4: Test Extraction
+  - id: test-extraction
+    name: Extract and Convert Tests
+    description: Preserve test coverage during migration
+    type: action
+    dependsOn: [component-analysis]
+    agent: debugearth
+    action: extractTests
+    inputs:
+      sourcePath: ${inputs.projectPath}
+      sourceFramework: ${inputs.sourceFramework}
+      extraction:
+        - unit-tests
+        - integration-tests
+        - e2e-tests
+      conversion:
+        - test-framework-mapping
+        - assertion-library-mapping
+        - mock-strategy-mapping
+
+  # Step 5: Migration Strategy Implementation
+  - id: migration-strategy
+    name: Implement Migration Strategy
+    description: Execute chosen migration approach
+    type: decision
+    dependsOn: [test-extraction]
+    agent: orchestrator
+    action: executeMigrationStrategy
+    inputs:
+      strategy: ${inputs.migrationStrategy}
+      conditions:
+        - field: inputs.migrationStrategy
+          operator: equals
+          value: strangler-fig
+          action: strangler-fig-migration
+        - field: inputs.migrationStrategy
+          operator: equals
+          value: big-bang
+          action: big-bang-migration
+        - field: inputs.migrationStrategy
+          operator: equals
+          value: gradual-component
+          action: gradual-component-migration
+        - field: inputs.migrationStrategy
+          operator: equals
+          value: micro-frontend
+          action: micro-frontend-migration
+
+  # Step 6: Component Transformation
+  - id: component-transformation
+    name: Transform Components
+    description: Convert components to target framework
+    type: loop
+    dependsOn: [migration-strategy]
+    agent: sketchie
+    action: transformComponent
+    maxIterations: ${nodes.component-analysis.outputs.componentCount}
+    inputs:
+      component: ${currentComponent}
+      sourceFramework: ${inputs.sourceFramework}
+      targetFramework: ${inputs.targetFramework}
+      transformations:
+        - syntax-conversion
+        - lifecycle-mapping
+        - state-conversion
+        - props-transformation
+        - event-handling
+        - styling-migration
+
+  # Step 7: State Management Migration
+  - id: state-migration
+    name: Migrate State Management
+    description: Convert state management patterns
+    type: action
+    dependsOn: [component-transformation]
+    agent: sketchie
+    action: migrateStateManagement
+    inputs:
+      sourcePattern: ${nodes.component-analysis.outputs.statePattern}
+      targetPattern: ${inputs.targetStateManagement || 'auto'}
+      migrations:
+        redux-to-vuex:
+          - action-conversion
+          - reducer-to-mutations
+          - selector-to-getters
+        mobx-to-pinia:
+          - observable-to-state
+          - action-mapping
+          - computed-conversion
+        context-to-composition:
+          - provider-to-composable
+          - hook-conversion
+
+  # Step 8: Routing Migration
+  - id: routing-migration
+    name: Migrate Routing System
+    description: Convert routing between frameworks
+    type: action
+    dependsOn: [state-migration]
+    agent: orchestrator
+    action: migrateRouting
+    inputs:
+      sourceRouter: ${nodes.component-analysis.outputs.routingLibrary}
+      targetRouter: ${targetFrameworkRouter}
+      migration:
+        - route-definition
+        - navigation-guards
+        - lazy-loading
+        - nested-routes
+        - route-parameters
+
+  # Step 9: Style Migration
+  - id: style-migration
+    name: Migrate Styles and Theming
+    description: Convert styling approach
+    type: parallel
+    dependsOn: [component-transformation]
+    tasks:
+      - agent: sketchie
+        action: migrateStyles
+        inputs:
+          sourceApproach: ${nodes.component-analysis.outputs.stylingApproach}
+          targetApproach: ${inputs.targetStyling || 'css-modules'}
+          conversion:
+            - css-in-js-to-css-modules
+            - styled-components-to-emotion
+            - sass-to-postcss
+      - agent: sketchie
+        action: extractDesignTokens
+        inputs:
+          sourcePath: ${inputs.projectPath}
+          preserve: true
+
+  # Step 10: Integration Testing
+  - id: integration-testing
+    name: Test Migrated Components
+    description: Validate migrated functionality
+    type: parallel
+    dependsOn: [routing-migration, style-migration]
+    tasks:
+      - agent: debugearth
+        action: runMigratedTests
+        inputs:
+          tests: ${nodes.test-extraction.outputs.convertedTests}
+          framework: ${inputs.targetFramework}
+      - agent: debugearth
+        action: compareOutputs
+        inputs:
+          original: ${inputs.originalApp}
+          migrated: ${outputs.migratedApp}
+          scenarios: auto-generated
+
+  # Step 11: Performance Validation
+  - id: performance-validation
+    name: Validate Performance
+    description: Ensure migration doesn't degrade performance
+    type: action
+    dependsOn: [integration-testing]
+    agent: sketchie
+    action: comparePerformance
+    inputs:
+      baseline: ${nodes.feasibility-analysis.outputs.performanceBaseline}
+      current: ${measureCurrentPerformance()}
+      thresholds:
+        regression: 10%
+        bundleSize: 20%
+
+  # Step 12: Gradual Rollout
+  - id: gradual-rollout
+    name: Plan Gradual Rollout
+    description: Create deployment strategy for migrated application
+    type: action
+    dependsOn: [performance-validation]
+    agent: orchestrator
+    action: planRollout
+    conditions:
+      - field: inputs.migrationStrategy
+        operator: not_equals
+        value: big-bang
+        action: continue
+    inputs:
+      strategy: ${inputs.migrationStrategy}
+      phases:
+        - route-based-splitting
+        - feature-flag-control
+        - user-percentage-rollout
+      monitoring: true
+
+  # Step 13: Documentation Update
+  - id: documentation
+    name: Update Documentation
+    description: Generate migration documentation
+    type: parallel
+    dependsOn: [gradual-rollout]
+    tasks:
+      - agent: orchestrator
+        action: generateMigrationGuide
+        inputs:
+          changes: ${trackAllChanges()}
+          format: markdown
+      - agent: sketchie
+        action: updateComponentDocs
+        inputs:
+          framework: ${inputs.targetFramework}
+          components: ${nodes.component-transformation.outputs.components}
+
+outputs:
+  - name: Migrated Application
+    type: artifact
+    format: zip
+    destination: ${outputs.artifactPath}/migrated-app.zip
+  
+  - name: Migration Report
+    type: report
+    format: pdf
+    destination: ${outputs.reportPath}/migration-report.pdf
+  
+  - name: Component Mapping
+    type: report
+    format: json
+    destination: ${outputs.reportPath}/component-mapping.json
+  
+  - name: Test Results
+    type: report
+    format: html
+    destination: ${outputs.reportPath}/test-results.html
+  
+  - name: Performance Comparison
+    type: report
+    format: html
+    destination: ${outputs.reportPath}/performance-comparison.html
+  
+  - name: Migration Guide
+    type: artifact
+    format: markdown
+    destination: ${outputs.docsPath}/migration-guide.md
+  
+  - name: Rollout Plan
+    type: artifact
+    format: yaml
+    destination: ${outputs.planPath}/rollout-plan.yaml
+
+metrics:
+  successRate: 89.4
+  averageExecutionTime: 480
+  totalExecutions: 567
+  userRating: 4.5
+  averageMigrationCompleteness: 95.2
+  componentsPerHour: 12

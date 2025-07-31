@@ -1,0 +1,307 @@
+id: rapid-prototyping
+name: Rapid Prototyping Workflow
+description: Quickly transform ideas into functional prototypes for validation
+category: prototyping
+tier: starter
+tags:
+  - prototyping
+  - mvp
+  - hackathon
+  - proof-of-concept
+  - rapid-development
+  - ideation
+industry:
+  - startup
+  - agency
+  - innovation-labs
+  - hackathons
+estimatedTime: 1-4 hours
+difficulty: beginner
+
+config:
+  parallelExecution: true
+  maxRetries: 1
+  timeoutMinutes: 240
+  customSettings:
+    speed: aggressive
+    quality: mvp
+    shortcuts:
+      useTemplates: true
+      skipTests: ${inputs.skipTests || false}
+      skipDocs: ${inputs.skipDocs || true}
+      useLibraries: true
+      inlineStyles: true
+    defaults:
+      framework: react
+      styling: tailwind
+      deployment: vercel
+
+triggers:
+  - type: manual
+    config:
+      requiredInputs:
+        - ideaDescription
+        - prototypeType
+      optionalInputs:
+        - timeLimit
+        - demoAudience
+        - keyFeatures
+
+nodes:
+  # Step 1: Idea Analysis
+  - id: idea-analysis
+    name: Analyze and Structure Idea
+    description: Break down idea into implementable components
+    type: analysis
+    agent: sketchie
+    action: analyzeIdea
+    timeout: 300000  # 5 minutes
+    inputs:
+      description: ${inputs.ideaDescription}
+      prototypeType: ${inputs.prototypeType}
+      analysis:
+        - core-features
+        - user-flows
+        - data-models
+        - ui-components
+        - third-party-apis
+      constraints:
+        timeLimit: ${inputs.timeLimit || '4h'}
+        mustHave: ${inputs.keyFeatures || []}
+
+  # Step 2: Quick Architecture
+  - id: quick-architecture
+    name: Generate Quick Architecture
+    description: Create minimal viable architecture
+    type: action
+    dependsOn: [idea-analysis]
+    agent: orchestrator
+    action: generateArchitecture
+    timeout: 180000  # 3 minutes
+    inputs:
+      features: ${nodes.idea-analysis.outputs.features}
+      style: minimal
+      components:
+        frontend: ${config.customSettings.defaults.framework}
+        styling: ${config.customSettings.defaults.styling}
+        backend: ${inputs.needsBackend ? 'express' : 'none'}
+        database: ${inputs.needsDatabase ? 'sqlite' : 'localstorage'}
+        auth: ${inputs.needsAuth ? 'auth0' : 'none'}
+
+  # Step 3: UI Scaffolding
+  - id: ui-scaffolding
+    name: Generate UI Scaffolding
+    description: Quickly create UI structure and components
+    type: parallel
+    dependsOn: [quick-architecture]
+    tasks:
+      - agent: sketchie
+        action: generateLayout
+        timeout: 300000
+        inputs:
+          description: ${inputs.ideaDescription}
+          template: ${inputs.layoutTemplate || 'dashboard'}
+          responsive: true
+          components:
+            - navbar
+            - sidebar
+            - main-content
+            - footer
+      - agent: sketchie
+        action: generateComponents
+        timeout: 600000
+        inputs:
+          components: ${nodes.idea-analysis.outputs.uiComponents}
+          style: ${config.customSettings.defaults.styling}
+          interactive: true
+          animations: minimal
+
+  # Step 4: Data Mocking
+  - id: data-mocking
+    name: Create Mock Data
+    description: Generate realistic mock data for prototype
+    type: action
+    dependsOn: [idea-analysis]
+    agent: orchestrator
+    action: generateMockData
+    timeout: 180000
+    inputs:
+      dataModels: ${nodes.idea-analysis.outputs.dataModels}
+      quantity:
+        users: 10
+        items: 50
+        transactions: 100
+      format: json
+      realistic: true
+
+  # Step 5: Core Feature Implementation
+  - id: core-features
+    name: Implement Core Features
+    description: Rapidly implement must-have features
+    type: parallel
+    dependsOn: [ui-scaffolding, data-mocking]
+    agent: sketchie
+    action: implementFeatures
+    timeout: 1200000  # 20 minutes
+    inputs:
+      features: ${inputs.keyFeatures || nodes.idea-analysis.outputs.coreFeatures}
+      mockData: ${nodes.data-mocking.outputs.data}
+      implementation:
+        depth: shallow
+        errorHandling: basic
+        validation: minimal
+        optimization: none
+      libraries:
+        - react-hook-form
+        - axios
+        - react-query
+        - zustand
+
+  # Step 6: Quick Styling
+  - id: quick-styling
+    name: Apply Quick Styling
+    description: Make it look presentable quickly
+    type: action
+    dependsOn: [core-features]
+    agent: sketchie
+    action: applyStyles
+    timeout: 600000
+    inputs:
+      theme: ${inputs.theme || 'modern-minimal'}
+      styling:
+        - use-design-system
+        - apply-shadows
+        - add-transitions
+        - responsive-layout
+        - dark-mode-toggle
+      brandColors: ${inputs.brandColors || ['#3B82F6', '#10B981']}
+
+  # Step 7: Interactivity
+  - id: interactivity
+    name: Add Interactivity
+    description: Make prototype feel alive with interactions
+    type: action
+    dependsOn: [quick-styling]
+    agent: sketchie
+    action: addInteractivity
+    timeout: 600000
+    inputs:
+      interactions:
+        - click-handlers
+        - hover-effects
+        - loading-states
+        - transitions
+        - toast-notifications
+        - modal-dialogs
+      demoMode: true
+      fakeLag: 500  # Simulate API calls
+
+  # Step 8: Quick Deploy
+  - id: quick-deploy
+    name: Deploy Prototype
+    description: Get it online quickly
+    type: action
+    dependsOn: [interactivity]
+    agent: orchestrator
+    action: deployPrototype
+    timeout: 300000
+    conditions:
+      - field: inputs.deploy
+        operator: not_equals
+        value: false
+        action: continue
+    inputs:
+      platform: ${config.customSettings.defaults.deployment}
+      config:
+        subdomain: ${inputs.projectName || 'prototype'}-${Date.now()}
+        environment: preview
+        auth: ${inputs.needsAuth}
+      optimize: false  # Skip optimization for speed
+
+  # Step 9: Demo Preparation
+  - id: demo-prep
+    name: Prepare Demo Materials
+    description: Create materials for presenting the prototype
+    type: parallel
+    dependsOn: [quick-deploy]
+    conditions:
+      - field: inputs.prepareDemoMaterials
+        operator: not_equals
+        value: false
+        action: continue
+    tasks:
+      - agent: orchestrator
+        action: generatePitchDeck
+        timeout: 300000
+        inputs:
+          slides:
+            - problem-statement
+            - solution-overview
+            - key-features
+            - demo-screenshots
+            - technical-stack
+            - next-steps
+      - agent: orchestrator
+        action: createDemoScript
+        timeout: 180000
+        inputs:
+          audience: ${inputs.demoAudience || 'general'}
+          duration: ${inputs.demoDuration || '5min'}
+          highlights: ${nodes.idea-analysis.outputs.coreFeatures}
+
+  # Step 10: Quick Documentation
+  - id: quick-docs
+    name: Generate Quick Documentation
+    description: Minimal documentation for handoff
+    type: action
+    dependsOn: [demo-prep]
+    agent: orchestrator
+    action: generateQuickDocs
+    timeout: 300000
+    conditions:
+      - field: config.customSettings.shortcuts.skipDocs
+        operator: equals
+        value: false
+        action: continue
+    inputs:
+      format: markdown
+      sections:
+        - getting-started
+        - feature-list
+        - tech-stack
+        - deployment-info
+        - known-limitations
+        - future-enhancements
+
+outputs:
+  - name: Prototype URL
+    type: artifact
+    format: url
+    destination: ${nodes.quick-deploy.outputs.url || 'http://localhost:3000'}
+  
+  - name: Source Code
+    type: artifact
+    format: zip
+    destination: ${outputs.artifactPath}/prototype-source.zip
+  
+  - name: Demo Materials
+    type: artifact
+    format: zip
+    destination: ${outputs.artifactPath}/demo-materials.zip
+  
+  - name: Quick Start Guide
+    type: report
+    format: markdown
+    destination: ${outputs.docsPath}/quickstart.md
+  
+  - name: Feature List
+    type: report
+    format: json
+    destination: ${outputs.reportPath}/features.json
+
+metrics:
+  successRate: 94.8
+  averageExecutionTime: 120
+  totalExecutions: 5672
+  userRating: 4.5
+  averageTimeToPrototype: 2.5
