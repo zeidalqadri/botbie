@@ -11,6 +11,8 @@ import {
   GetPromptRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { createBotbie } from '@earth-agents/botbie';
+import { createSketchie } from '@earth-agents/sketchie';
+import { sketchMCP } from '@earth-agents/sketchie/mcp';
 import { SessionManager, CrossAgentInsight } from '@earth-agents/core';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -20,6 +22,7 @@ interface UnifiedAnalysisResult {
   timestamp: Date;
   botbieReport?: any;
   debugearthSession?: any;
+  sketchieAnalysis?: any;
   crossAgentInsights: CrossAgentInsight[];
   recommendations: string[];
   overallScore: number;
@@ -29,6 +32,7 @@ class UnifiedEarthAgentsMCPServer {
   private server: Server;
   private sessionManager: SessionManager;
   private botbie: any;
+  private sketchie: any;
   private latestResult: UnifiedAnalysisResult | null = null;
 
   constructor() {
@@ -54,8 +58,8 @@ class UnifiedEarthAgentsMCPServer {
 
   private setupToolHandlers() {
     this.server.setRequestHandler(ListToolsRequestSchema, async () => {
-      return {
-        tools: [
+      // Combine all tools from different agents
+      const unifiedTools = [
           {
             name: 'unified_analysis',
             description: 'Run comprehensive analysis combining both Botbie and DebugEarth',
@@ -163,7 +167,17 @@ class UnifiedEarthAgentsMCPServer {
               required: ['patternType']
             }
           }
-        ]
+        ];
+
+      // Add Sketchie tools with prefixed names
+      const sketchieToolsWithPrefix = sketchMCP.tools.map(tool => ({
+        ...tool,
+        name: `sketchie_${tool.name}`,
+        description: `[Sketchie] ${tool.description}`
+      }));
+
+      return {
+        tools: [...unifiedTools, ...sketchieToolsWithPrefix]
       };
     });
 
@@ -188,6 +202,27 @@ class UnifiedEarthAgentsMCPServer {
             return await this.handlePatternAnalysis(args);
           
           default:
+            // Check if it's a Sketchie tool
+            if (name.startsWith('sketchie_')) {
+              const sketchieToolName = name.replace('sketchie_', '');
+              const sketchTool = sketchMCP.tools.find(t => t.name === sketchieToolName);
+              
+              if (sketchTool && sketchTool.handler) {
+                try {
+                  const result = await sketchTool.handler(args);
+                  return {
+                    content: [
+                      {
+                        type: 'text',
+                        text: JSON.stringify(result, null, 2)
+                      }
+                    ]
+                  };
+                } catch (error) {
+                  throw new Error(`Sketchie tool error: ${error}`);
+                }
+              }
+            }
             throw new Error(`Unknown tool: ${name}`);
         }
       } catch (error) {
@@ -205,8 +240,7 @@ class UnifiedEarthAgentsMCPServer {
 
   private setupResourceHandlers() {
     this.server.setRequestHandler(ListResourcesRequestSchema, async () => {
-      return {
-        resources: [
+      const unifiedResources = [
           {
             uri: 'earth-agents://latest-unified-analysis',
             name: 'Latest Unified Analysis',
@@ -231,7 +265,17 @@ class UnifiedEarthAgentsMCPServer {
             description: 'Learned patterns and recommendations',
             mimeType: 'application/json'
           }
-        ]
+        ];
+
+      // Add Sketchie resources
+      const sketchieResourcesWithPrefix = sketchMCP.resources.map(resource => ({
+        ...resource,
+        uri: resource.uri.replace('sketchie://', 'earth-agents://sketchie/'),
+        name: `[Sketchie] ${resource.name}`
+      }));
+
+      return {
+        resources: [...unifiedResources, ...sketchieResourcesWithPrefix]
       };
     });
 
@@ -288,6 +332,23 @@ class UnifiedEarthAgentsMCPServer {
           };
         
         default:
+          // Check if it's a Sketchie resource
+          if (uri.startsWith('earth-agents://sketchie/')) {
+            // For now, return placeholder data for Sketchie resources
+            // In a real implementation, this would query Sketchie's internal state
+            return {
+              contents: [
+                {
+                  uri,
+                  mimeType: 'application/json',
+                  text: JSON.stringify({
+                    message: 'Sketchie resource data would be here',
+                    resource: uri
+                  }, null, 2)
+                }
+              ]
+            };
+          }
           throw new Error(`Unknown resource: ${uri}`);
       }
     });
@@ -295,8 +356,7 @@ class UnifiedEarthAgentsMCPServer {
 
   private setupPromptHandlers() {
     this.server.setRequestHandler(ListPromptsRequestSchema, async () => {
-      return {
-        prompts: [
+      const unifiedPrompts = [
           {
             name: 'unified_analysis_session',
             description: 'Start a comprehensive analysis session with both agents',
@@ -335,7 +395,17 @@ class UnifiedEarthAgentsMCPServer {
               }
             ]
           }
-        ]
+        ];
+
+      // Add Sketchie prompts with prefixed names
+      const sketchiePromptsWithPrefix = sketchMCP.prompts.map(prompt => ({
+        ...prompt,
+        name: `sketchie_${prompt.name}`,
+        description: `[Sketchie] ${prompt.description}`
+      }));
+
+      return {
+        prompts: [...unifiedPrompts, ...sketchiePromptsWithPrefix]
       };
     });
 
@@ -383,6 +453,21 @@ class UnifiedEarthAgentsMCPServer {
           };
         
         default:
+          // Check if it's a Sketchie prompt
+          if (name.startsWith('sketchie_')) {
+            const sketchiePromptName = name.replace('sketchie_', '');
+            return {
+              messages: [
+                {
+                  role: 'user',
+                  content: {
+                    type: 'text',
+                    text: this.getSketchiePrompt(sketchiePromptName, args)
+                  }
+                }
+              ]
+            };
+          }
           throw new Error(`Unknown prompt: ${name}`);
       }
     });
@@ -711,6 +796,29 @@ I'll analyze learned patterns to optimize your development process:
 Use \`pattern_analysis\` to explore learned patterns and trends.
 
 What aspect would you like to optimize?`;
+  }
+
+  private getSketchiePrompt(promptName: string, args?: any): string {
+    const prompt = sketchMCP.prompts.find(p => p.name === promptName);
+    if (!prompt) {
+      return `Unknown Sketchie prompt: ${promptName}`;
+    }
+
+    // Build dynamic prompt based on the prompt type and arguments
+    let text = `🎨 **Sketchie ${prompt.name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}**\n\n`;
+    text += `${prompt.description}\n\n`;
+
+    if (args) {
+      text += '**Configuration:**\n';
+      Object.entries(args).forEach(([key, value]) => {
+        text += `- ${key.replace(/_/g, ' ')}: ${value}\n`;
+      });
+      text += '\n';
+    }
+
+    text += `Use \`sketchie_${promptName}\` tool to execute this workflow.`;
+    
+    return text;
   }
 
   async run() {
