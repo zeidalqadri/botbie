@@ -75,23 +75,51 @@ triggers:
       cron: "0 0 * * *"  # Daily security scan
 
 nodes:
-  # Step 1: Pre-Security Assessment
+  # Step 1: Pre-Security Assessment with Security Specialists
   - id: pre-assessment
-    name: Pre-Security Assessment
-    description: Initial security posture evaluation
-    type: parallel
-    agent: botbie
-    action: securityAssessment
-    inputs:
-      projectPath: ${inputs.projectPath}
-      checks:
-        - architecture-review
-        - dependency-audit
-        - secrets-detection
-        - configuration-review
-        - access-control-review
-        - data-flow-analysis
-        - threat-surface-mapping
+    name: Pre-Security Assessment with Expert Analysis
+    description: Initial security posture evaluation using security specialists
+    type: specialist
+    specialists:
+      - name: security-auditor
+        strategy: security-audit
+        priority: 1
+        required: true
+        context:
+          focus: comprehensive-audit
+          standards: ${config.customSettings.securityStandards}
+          checks:
+            - owasp-top-10
+            - cwe-top-25
+            - authentication-security
+            - authorization-security
+            - input-validation
+            - crypto-practices
+      - name: network-architect
+        strategy: network-security
+        priority: 2
+        required: false
+        context:
+          focus: infrastructure-security
+          checks:
+            - firewall-rules
+            - network-segmentation
+            - ssl-tls-config
+            - dns-security
+    tasks:
+      - agent: botbie
+        action: securityAssessment
+        inputs:
+          projectPath: ${inputs.projectPath}
+          specialists: ${node.specialists}
+          checks:
+            - architecture-review
+            - dependency-audit
+            - secrets-detection
+            - configuration-review
+            - access-control-review
+            - data-flow-analysis
+            - threat-surface-mapping
 
   # Step 2: Static Application Security Testing (SAST)
   - id: sast-scanning

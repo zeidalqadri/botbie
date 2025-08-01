@@ -88,12 +88,32 @@ nodes:
         database: ${inputs.needsDatabase ? 'sqlite' : 'localstorage'}
         auth: ${inputs.needsAuth ? 'auth0' : 'none'}
 
-  # Step 3: UI Scaffolding
+  # Step 3: UI Scaffolding with Prototyping Specialists
   - id: ui-scaffolding
-    name: Generate UI Scaffolding
-    description: Quickly create UI structure and components
-    type: parallel
+    name: Generate UI Scaffolding with Expert Guidance
+    description: Quickly create UI structure and components using specialist expertise
+    type: specialist
     dependsOn: [quick-architecture]
+    specialists:
+      - name: frontend-developer
+        strategy: rapid-prototyping
+        priority: 1
+        required: true
+        context:
+          focus: component-generation
+          framework: ${config.customSettings.defaults.framework}
+          styling: ${config.customSettings.defaults.styling}
+          speed: ${config.customSettings.speed}
+          quality: ${config.customSettings.quality}
+      - name: ui-ux-designer
+        strategy: design-system
+        priority: 2
+        required: false
+        context:
+          focus: layout-optimization
+          template: ${inputs.layoutTemplate || 'dashboard'}
+          responsive: true
+          brandColors: ${inputs.brandColors || ['#3B82F6', '#10B981']}
     tasks:
       - agent: sketchie
         action: generateLayout
@@ -101,6 +121,7 @@ nodes:
         inputs:
           description: ${inputs.ideaDescription}
           template: ${inputs.layoutTemplate || 'dashboard'}
+          specialists: ${node.specialists}
           responsive: true
           components:
             - navbar
@@ -112,6 +133,7 @@ nodes:
         timeout: 600000
         inputs:
           components: ${nodes.idea-analysis.outputs.uiComponents}
+          specialists: ${node.specialists}
           style: ${config.customSettings.defaults.styling}
           interactive: true
           animations: minimal

@@ -112,28 +112,54 @@ nodes:
       framework: ${inputs.legacyTech}
       coverageTarget: ${config.customSettings.safetyChecks.minCoverage}
 
-  # Step 4: Incremental Refactoring
+  # Step 4: Incremental Refactoring with Modernization Specialists
   - id: refactoring
-    name: Incremental Code Refactoring
-    description: Safely refactor code in small, testable increments
-    type: loop
+    name: Incremental Code Refactoring with Expert Guidance
+    description: Safely refactor code using specialist expertise for modernization
+    type: specialist
     dependsOn: [test-generation]
-    agent: botbie
-    action: refactorCode
+    specialists:
+      - name: refactoring-expert
+        strategy: code-refactoring
+        priority: 1
+        required: true
+        context:
+          focus: legacy-modernization
+          legacyTech: ${inputs.legacyTech}
+          targetTech: ${inputs.targetFramework}
+          safetyChecks: ${config.customSettings.safetyChecks}
+      - name: backend-architect
+        strategy: api-modernization
+        priority: 2
+        required: false
+        context:
+          focus: architecture-patterns
+          modernizationTargets: ${config.customSettings.modernizationTargets}
+      - name: test-engineer
+        strategy: test-coverage
+        priority: 3
+        required: true
+        context:
+          focus: refactoring-safety
+          coverageTarget: ${config.customSettings.safetyChecks.minCoverage}
     maxIterations: 20
-    inputs:
-      sourcePath: ${inputs.sourcePath}
-      refactoringSteps:
-        - extract-methods
-        - reduce-complexity
-        - remove-duplication
-        - improve-naming
-        - simplify-conditionals
-        - extract-interfaces
-        - dependency-injection
-      validation:
-        runTests: true
-        checkRegression: true
+    tasks:
+      - agent: botbie
+        action: refactorCode
+        inputs:
+          sourcePath: ${inputs.sourcePath}
+          specialists: ${node.specialists}
+          refactoringSteps:
+            - extract-methods
+            - reduce-complexity
+            - remove-duplication
+            - improve-naming
+            - simplify-conditionals
+            - extract-interfaces
+            - dependency-injection
+          validation:
+            runTests: true
+            checkRegression: true
 
   # Step 5: Framework Migration
   - id: framework-migration

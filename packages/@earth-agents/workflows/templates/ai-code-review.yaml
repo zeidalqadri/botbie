@@ -119,25 +119,54 @@ nodes:
             - test-quality
             - edge-cases
 
-  # Step 3: AI Deep Review
+  # Step 3: AI Deep Review with Code Review Specialists
   - id: ai-deep-review
-    name: AI-Powered Deep Review
-    description: Advanced pattern recognition and suggestion generation
-    type: action
+    name: AI-Powered Deep Review with Expert Analysis
+    description: Advanced pattern recognition and suggestion generation using specialist expertise
+    type: specialist
     dependsOn: [multi-agent-analysis]
-    agent: orchestrator
-    action: aiDeepReview
-    inputs:
-      context: ${nodes.context-analysis.outputs}
-      agentFindings: ${nodes.multi-agent-analysis.outputs}
-      model: ${config.customSettings.aiModels.primary}
-      review:
-        - logic-errors
-        - edge-cases
-        - optimization-opportunities
-        - alternative-approaches
-        - potential-bugs
-        - code-smells
+    specialists:
+      - name: senior-code-reviewer
+        strategy: comprehensive-review
+        priority: 1
+        required: true
+        context:
+          focus: deep-analysis
+          reviewAreas: ${config.customSettings.reviewAreas}
+          model: ${config.customSettings.aiModels.primary}
+          checks:
+            - logic-errors
+            - edge-cases
+            - optimization-opportunities
+            - alternative-approaches
+            - potential-bugs
+            - code-smells
+      - name: refactoring-expert
+        strategy: code-improvement
+        priority: 2
+        required: false
+        context:
+          focus: refactoring-opportunities
+          patterns:
+            - extract-method
+            - reduce-complexity
+            - eliminate-duplication
+            - improve-naming
+    tasks:
+      - agent: orchestrator
+        action: aiDeepReview
+        inputs:
+          context: ${nodes.context-analysis.outputs}
+          agentFindings: ${nodes.multi-agent-analysis.outputs}
+          specialists: ${node.specialists}
+          model: ${config.customSettings.aiModels.primary}
+          review:
+            - logic-errors
+            - edge-cases
+            - optimization-opportunities
+            - alternative-approaches
+            - potential-bugs
+            - code-smells
 
   # Step 4: Best Practices Check
   - id: best-practices

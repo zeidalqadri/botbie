@@ -75,17 +75,19 @@ nodes:
         - webpack-bundle-analyzer
         - chrome-devtools
 
-  # Step 2: Code Analysis
+  # Step 2: Code Analysis with Specialists
   - id: code-analysis
-    name: Static Code Analysis
-    description: Analyze code for performance anti-patterns
-    type: parallel
+    name: Static Code Analysis with Performance Specialists
+    description: Analyze code for performance anti-patterns using specialist expertise
+    type: specialist
     dependsOn: [initial-audit]
-    tasks:
-      - agent: botbie
-        action: analyzePerformance
-        inputs:
-          path: ${inputs.projectPath}
+    specialists:
+      - name: performance-engineer
+        strategy: performance-debugging
+        priority: 1
+        required: true
+        context:
+          focus: code-analysis
           checks:
             - large-dependencies
             - unused-exports
@@ -93,6 +95,23 @@ nodes:
             - synchronous-operations
             - memory-leaks
             - excessive-re-renders
+      - name: data-engineer
+        strategy: database-optimization
+        priority: 2
+        required: false
+        context:
+          focus: query-performance
+          checks:
+            - n-plus-one-queries
+            - missing-indexes
+            - inefficient-joins
+            - connection-pooling
+    tasks:
+      - agent: botbie
+        action: analyzePerformance
+        inputs:
+          path: ${inputs.projectPath}
+          specialists: ${node.specialists}
       - agent: sketchie
         action: analyzeComponents
         inputs:
