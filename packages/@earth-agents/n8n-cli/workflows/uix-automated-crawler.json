@@ -1,0 +1,390 @@
+{
+  "name": "UIX Automated Design Crawler",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "a8c7d3e4-5f6b-4a2d-8e1f-9b3c7d2e1a4f",
+      "name": "Start",
+      "type": "n8n-nodes-base.start",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6
+            }
+          ]
+        }
+      },
+      "id": "b9d8e4f5-6g7c-5b3e-9f2g-ac4d8e3f2b5g",
+      "name": "Schedule Crawl",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [250, 500]
+    },
+    {
+      "parameters": {
+        "url": "https://api.awwwards.com/v1/websites/nominees",
+        "options": {
+          "headers": {
+            "header": [
+              {
+                "name": "User-Agent",
+                "value": "Mozilla/5.0 UIX-Crawler/1.0"
+              }
+            ]
+          }
+        }
+      },
+      "id": "c1e9f5g6-7h8d-6c4f-ag3h-bd5e9f4g3c6h",
+      "name": "Fetch Award Sites",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [450, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse award-winning websites and prepare for crawling\nconst websites = [];\nconst sources = [\n  // Awwwards nominees\n  { url: 'https://www.awwwards.com/websites/nominees/', selector: '.site-link' },\n  // CSS Design Awards\n  { url: 'https://www.cssdesignawards.com/', selector: '.nominee-link' },\n  // FWA\n  { url: 'https://thefwa.com/', selector: '.site-url' },\n  // Webby Awards\n  { url: 'https://winners.webbyawards.com/', selector: '.winner-site' }\n];\n\n// For demo, use static list of exceptional sites\nconst exceptionalSites = [\n  { url: 'https://stripe.com', tags: ['fintech', 'minimal', 'professional'] },\n  { url: 'https://linear.app', tags: ['saas', 'productivity', 'dark-mode'] },\n  { url: 'https://vercel.com', tags: ['developer', 'modern', 'gradient'] },\n  { url: 'https://www.apple.com', tags: ['corporate', 'elegant', 'animation'] },\n  { url: 'https://github.com', tags: ['developer', 'community', 'dark-mode'] },\n  { url: 'https://www.figma.com', tags: ['design', 'collaborative', 'colorful'] },\n  { url: 'https://notion.so', tags: ['productivity', 'clean', 'illustrations'] },\n  { url: 'https://slack.com', tags: ['communication', 'playful', 'gradient'] },\n  { url: 'https://www.shopify.com', tags: ['ecommerce', 'bold', 'conversion'] },\n  { url: 'https://www.tesla.com', tags: ['automotive', 'futuristic', 'immersive'] }\n];\n\n// Filter sites not crawled in last 7 days\nconst now = new Date();\nconst sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);\n\n// Return sites to crawl\nreturn exceptionalSites.map(site => ({\n  json: {\n    url: site.url,\n    tags: site.tags,\n    crawlOptions: {\n      depth: 2,\n      patterns: ['navigation', 'hero', 'card', 'form', 'button'],\n      captureInteractions: true,\n      viewports: ['desktop', 'tablet', 'mobile'],\n      extractTokens: true\n    }\n  }\n}));"
+      },
+      "id": "d2fag6h7-8i9e-7d5g-bh4i-ce6fag5h4d7i",
+      "name": "Prepare Sites",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 400]
+    },
+    {
+      "parameters": {
+        "url": "=http://localhost:3001/api/crawl",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "url",
+              "value": "={{ $json.url }}"
+            },
+            {
+              "name": "options",
+              "value": "={{ $json.crawlOptions }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 300000
+        }
+      },
+      "id": "e3gbh7i8-9jak-8e6h-ci5j-df7gbh6i5e8j",
+      "name": "Crawl Website",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [850, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process crawl results and extract insights\nconst crawlResult = items[0].json.data;\nconst insights = [];\n\n// Analyze components\nif (crawlResult.components && crawlResult.components.length > 0) {\n  const componentsByType = {};\n  crawlResult.components.forEach(component => {\n    componentsByType[component.type] = (componentsByType[component.type] || 0) + 1;\n  });\n  \n  insights.push({\n    type: 'component_analysis',\n    data: {\n      total: crawlResult.components.length,\n      byType: componentsByType,\n      topPatterns: crawlResult.patterns?.map(p => p.name) || []\n    }\n  });\n}\n\n// Analyze design tokens\nif (crawlResult.designTokens) {\n  const { colors, typography, spacing } = crawlResult.designTokens;\n  \n  insights.push({\n    type: 'design_tokens',\n    data: {\n      primaryColor: colors?.primary?.hex,\n      colorCount: Object.keys(colors || {}).length,\n      fontFamilies: typography?.fontFamilies?.map(f => f.family) || [],\n      spacingBase: spacing?.base\n    }\n  });\n}\n\n// Quality scores\nconst qualityScores = {\n  accessibility: crawlResult.components?.reduce((sum, c) => sum + (c.accessibilityScore || 0), 0) / (crawlResult.components?.length || 1),\n  performance: crawlResult.metadata?.duration < 30000 ? 'fast' : 'slow',\n  designQuality: crawlResult.patterns?.length > 3 ? 'high' : 'medium'\n};\n\ninsights.push({\n  type: 'quality_metrics',\n  data: qualityScores\n});\n\n// Return processed data\nreturn [{\n  json: {\n    website: crawlResult.website,\n    insights,\n    componentsFound: crawlResult.components?.length || 0,\n    crawlDuration: crawlResult.metadata?.duration,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "f4hci8j9-akbl-9f7i-dj6k-eg8hci7j6f9k",
+      "name": "Analyze Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1050, 400]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1ABCDefGHIJKLMNOPQRSTUVWXYZ",
+          "mode": "id"
+        },
+        "sheetName": "UIX Crawl Results",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "URL": "={{ $json.website.url }}",
+            "Name": "={{ $json.website.name }}",
+            "Components Found": "={{ $json.componentsFound }}",
+            "Primary Color": "={{ $json.insights[1].data.primaryColor }}",
+            "Font Families": "={{ $json.insights[1].data.fontFamilies.join(', ') }}",
+            "Accessibility Score": "={{ $json.insights[2].data.accessibility }}",
+            "Crawl Date": "={{ $json.timestamp }}"
+          }
+        }
+      },
+      "id": "g5idj9ka-blcm-ag8j-ek7l-fh9idj8kg7al",
+      "name": "Log to Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 3,
+      "position": [1250, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.componentsFound }}",
+              "operation": "larger",
+              "value2": 10
+            }
+          ]
+        }
+      },
+      "id": "h6jeka1b-cmdn-bh9k-fl8m-gi1jeka9h8bm",
+      "name": "Quality Check",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1250, 500]
+    },
+    {
+      "parameters": {
+        "url": "=http://localhost:3001/api/components/{{ $json.website.id }}/code",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "framework",
+              "value": "react"
+            },
+            {
+              "name": "typescript",
+              "value": "={{ true }}"
+            },
+            {
+              "name": "styling",
+              "value": "tailwind"
+            }
+          ]
+        }
+      },
+      "id": "i7kflb2c-dneo-ci1l-gm9n-hj2kflb1i9cn",
+      "name": "Generate Code",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1450, 450]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "repository",
+        "operation": "create",
+        "owner": "={{ $env.GITHUB_ORG }}",
+        "name": "=uix-components-{{ $json.website.name.toLowerCase().replace(/\\s+/g, '-') }}",
+        "description": "=Generated UI components from {{ $json.website.url }}",
+        "private": false,
+        "autoInit": true
+      },
+      "id": "j8lgmc3d-eofp-dj2m-hn1o-ik3lgmc2jak",
+      "name": "Create Repo",
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1,
+      "position": [1650, 450]
+    },
+    {
+      "parameters": {
+        "channel": "#uix-discoveries",
+        "text": "=🎨 New UI Discovery!\n\n*Website:* {{ $json.website.name }} ({{ $json.website.url }})\n*Components Found:* {{ $json.componentsFound }}\n*Primary Color:* {{ $json.insights[1].data.primaryColor }}\n*Design Quality:* {{ $json.insights[2].data.designQuality }}\n\nView in gallery: https://uix.zeidgeist.com/websites/{{ $json.website.id }}",
+        "attachments": [
+          {
+            "color": "#00FF00",
+            "fields": {
+              "item": [
+                {
+                  "short": true,
+                  "title": "Accessibility",
+                  "value": "={{ $json.insights[2].data.accessibility.toFixed(2) }}/100"
+                },
+                {
+                  "short": true,
+                  "title": "Performance",
+                  "value": "={{ $json.insights[2].data.performance }}"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "id": "k9mhnd4e-fpgq-ek3n-io2p-jl4mhnd3kbl",
+      "name": "Notify Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1,
+      "position": [1450, 300]
+    },
+    {
+      "parameters": {
+        "content": "## 🚨 Low Quality Site\n\nThe crawled site has fewer than 10 components. This might indicate:\n- Minimal UI design\n- Crawl failure\n- Single-page site\n\nManual review recommended.",
+        "options": {}
+      },
+      "id": "l1nioe5f-gqhr-fl4o-jp3q-km5nioe4lcm",
+      "name": "Low Quality Note",
+      "type": "n8n-nodes-base.markdown",
+      "typeVersion": 1,
+      "position": [1450, 600]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Generate weekly design digest\nconst allResults = items;\nconst digest = {\n  week: new Date().toISOString().split('T')[0],\n  totalSitesCrawled: allResults.length,\n  totalComponentsFound: allResults.reduce((sum, item) => sum + item.json.componentsFound, 0),\n  topPatterns: {},\n  colorTrends: [],\n  fontTrends: {}\n};\n\n// Aggregate patterns\nallResults.forEach(result => {\n  const patterns = result.json.insights.find(i => i.type === 'component_analysis')?.data.topPatterns || [];\n  patterns.forEach(pattern => {\n    digest.topPatterns[pattern] = (digest.topPatterns[pattern] || 0) + 1;\n  });\n});\n\n// Aggregate colors\nconst colors = allResults.map(r => \n  r.json.insights.find(i => i.type === 'design_tokens')?.data.primaryColor\n).filter(Boolean);\ndigest.colorTrends = [...new Set(colors)];\n\n// Aggregate fonts\nallResults.forEach(result => {\n  const fonts = result.json.insights.find(i => i.type === 'design_tokens')?.data.fontFamilies || [];\n  fonts.forEach(font => {\n    digest.fontTrends[font] = (digest.fontTrends[font] || 0) + 1;\n  });\n});\n\nreturn [{ json: digest }];"
+      },
+      "id": "m2ojpf6g-hris-gm5p-kq4r-ln6ojpf5mdn",
+      "name": "Weekly Digest",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1850, 400]
+    },
+    {
+      "parameters": {
+        "fromEmail": "uix-crawler@zeidgeist.com",
+        "toEmail": "zeidalqadri@gmail.com",
+        "subject": "=UIX Weekly Design Digest - {{ $json.week }}",
+        "html": "=<h2>🎨 UIX Weekly Design Digest</h2>\n<p>Week of: <strong>{{ $json.week }}</strong></p>\n\n<h3>📊 Summary</h3>\n<ul>\n  <li>Sites Crawled: <strong>{{ $json.totalSitesCrawled }}</strong></li>\n  <li>Components Discovered: <strong>{{ $json.totalComponentsFound }}</strong></li>\n</ul>\n\n<h3>🎯 Top Patterns</h3>\n<ol>\n  {{ Object.entries($json.topPatterns).sort((a,b) => b[1] - a[1]).slice(0,5).map(([pattern, count]) => `<li>${pattern} (${count} sites)</li>`).join('') }}\n</ol>\n\n<h3>🎨 Color Trends</h3>\n<div style=\"display: flex; gap: 10px;\">\n  {{ $json.colorTrends.slice(0,10).map(color => `<div style=\"width: 50px; height: 50px; background: ${color}; border: 1px solid #ccc;\"></div>`).join('') }}\n</div>\n\n<h3>📝 Popular Fonts</h3>\n<ol>\n  {{ Object.entries($json.fontTrends).sort((a,b) => b[1] - a[1]).slice(0,5).map(([font, count]) => `<li>${font} (${count} sites)</li>`).join('') }}\n</ol>\n\n<p><a href=\"https://uix.zeidgeist.com\">View Full Gallery →</a></p>",
+        "options": {}
+      },
+      "id": "n3pkqg7h-istj-hn6q-lr5s-mo7pkqg6neo",
+      "name": "Send Email Digest",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [2050, 400]
+    }
+  ],
+  "connections": {
+    "Schedule Crawl": {
+      "main": [
+        [
+          {
+            "node": "Fetch Award Sites",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Award Sites": {
+      "main": [
+        [
+          {
+            "node": "Prepare Sites",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Sites": {
+      "main": [
+        [
+          {
+            "node": "Crawl Website",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crawl Website": {
+      "main": [
+        [
+          {
+            "node": "Analyze Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Results": {
+      "main": [
+        [
+          {
+            "node": "Log to Sheets",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Quality Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Quality Check": {
+      "main": [
+        [
+          {
+            "node": "Generate Code",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Notify Slack",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Low Quality Note",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Code": {
+      "main": [
+        [
+          {
+            "node": "Create Repo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log to Sheets": {
+      "main": [
+        [
+          {
+            "node": "Weekly Digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weekly Digest": {
+      "main": [
+        [
+          {
+            "node": "Send Email Digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "instanceId": "earth-agents-uix-crawler"
+  },
+  "tags": [
+    {
+      "name": "Earth Agents",
+      "createdAt": "2024-01-15T10:00:00.000Z",
+      "updatedAt": "2024-01-15T10:00:00.000Z"
+    },
+    {
+      "name": "UIX",
+      "createdAt": "2024-01-15T10:00:00.000Z",
+      "updatedAt": "2024-01-15T10:00:00.000Z"
+    }
+  ]
+}
