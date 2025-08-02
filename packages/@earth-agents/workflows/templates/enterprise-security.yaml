@@ -1,0 +1,463 @@
+id: enterprise-security
+name: Enterprise Security Pipeline
+description: Comprehensive security scanning, vulnerability remediation, and compliance validation
+category: security
+tier: enterprise
+tags:
+  - security
+  - vulnerability-scanning
+  - penetration-testing
+  - compliance
+  - threat-modeling
+  - secure-coding
+industry:
+  - finance
+  - healthcare
+  - government
+  - fintech
+  - defense
+estimatedTime: 4-8 hours
+difficulty: advanced
+
+config:
+  parallelExecution: false  # Sequential for security
+  maxRetries: 2
+  timeoutMinutes: 480
+  customSettings:
+    securityStandards:
+      - OWASP-Top-10
+      - CWE-Top-25
+      - NIST-800-53
+      - ISO-27001
+      - PCI-DSS
+      - HIPAA
+      - SOC2
+    scanningTools:
+      sast:
+        - sonarqube
+        - checkmarx
+        - fortify
+      dast:
+        - owasp-zap
+        - burp-suite
+      sca:
+        - snyk
+        - whitesource
+        - blackduck
+    thresholds:
+      critical: 0
+      high: 0
+      medium: 5
+      low: 20
+  notificationChannels:
+    - type: slack
+      config:
+        webhook: ${env.SECURITY_SLACK_WEBHOOK}
+      events: [critical-finding, high-finding, scan-complete]
+    - type: email
+      config:
+        recipients: ${env.SECURITY_TEAM_EMAIL}
+      events: [start, complete, failure]
+
+triggers:
+  - type: manual
+    config:
+      requiredInputs:
+        - projectPath
+        - environment
+        - complianceRequirements
+  - type: git-hook
+    config:
+      branches: [main, release/*, hotfix/*]
+      events: [pull_request]
+  - type: schedule
+    config:
+      cron: "0 0 * * *"  # Daily security scan
+
+nodes:
+  # Step 1: Pre-Security Assessment with Security Specialists
+  - id: pre-assessment
+    name: Pre-Security Assessment with Expert Analysis
+    description: Initial security posture evaluation using security specialists
+    type: specialist
+    specialists:
+      - name: security-auditor
+        strategy: security-audit
+        priority: 1
+        required: true
+        context:
+          focus: comprehensive-audit
+          standards: ${config.customSettings.securityStandards}
+          checks:
+            - owasp-top-10
+            - cwe-top-25
+            - authentication-security
+            - authorization-security
+            - input-validation
+            - crypto-practices
+      - name: network-architect
+        strategy: network-security
+        priority: 2
+        required: false
+        context:
+          focus: infrastructure-security
+          checks:
+            - firewall-rules
+            - network-segmentation
+            - ssl-tls-config
+            - dns-security
+    tasks:
+      - agent: botbie
+        action: securityAssessment
+        inputs:
+          projectPath: ${inputs.projectPath}
+          specialists: ${node.specialists}
+          checks:
+            - architecture-review
+            - dependency-audit
+            - secrets-detection
+            - configuration-review
+            - access-control-review
+            - data-flow-analysis
+            - threat-surface-mapping
+
+  # Step 2: Static Application Security Testing (SAST)
+  - id: sast-scanning
+    name: Static Application Security Testing
+    description: Analyze source code for security vulnerabilities
+    type: parallel
+    dependsOn: [pre-assessment]
+    tasks:
+      - agent: botbie
+        action: runSAST
+        inputs:
+          tool: sonarqube
+          projectPath: ${inputs.projectPath}
+          rules: ${config.customSettings.securityStandards}
+          languages: auto-detect
+      - agent: botbie
+        action: customSecurityRules
+        inputs:
+          checks:
+            - sql-injection
+            - xss-vulnerabilities
+            - insecure-deserialization
+            - xxe-injection
+            - insecure-crypto
+            - hardcoded-secrets
+
+  # Step 3: Software Composition Analysis (SCA)
+  - id: sca-scanning
+    name: Dependency Security Analysis
+    description: Scan third-party dependencies for vulnerabilities
+    type: action
+    dependsOn: [pre-assessment]
+    agent: botbie
+    action: runSCA
+    inputs:
+      projectPath: ${inputs.projectPath}
+      checks:
+        - known-vulnerabilities
+        - license-compliance
+        - outdated-dependencies
+        - dependency-confusion
+        - typosquatting
+      autoUpdate: false  # Manual review required
+
+  # Step 4: Secrets Detection
+  - id: secrets-scanning
+    name: Secrets and Credentials Scanning
+    description: Detect exposed secrets and credentials
+    type: action
+    dependsOn: [pre-assessment]
+    agent: botbie
+    action: scanSecrets
+    inputs:
+      projectPath: ${inputs.projectPath}
+      scanHistory: true
+      patterns:
+        - api-keys
+        - passwords
+        - certificates
+        - private-keys
+        - connection-strings
+        - tokens
+      remediation:
+        rotate: true
+        vault: ${env.SECRETS_VAULT}
+
+  # Step 5: Container Security
+  - id: container-security
+    name: Container and Image Security
+    description: Scan containers and images for vulnerabilities
+    type: parallel
+    dependsOn: [sast-scanning]
+    conditions:
+      - field: inputs.hasContainers
+        operator: equals
+        value: true
+        action: continue
+    tasks:
+      - agent: orchestrator
+        action: scanDockerfiles
+        inputs:
+          path: ${inputs.projectPath}
+          checks:
+            - base-image-vulnerabilities
+            - misconfigurations
+            - exposed-ports
+            - root-user
+            - sensitive-data
+      - agent: orchestrator
+        action: scanImages
+        inputs:
+          registry: ${inputs.containerRegistry}
+          images: ${inputs.containerImages}
+
+  # Step 6: Infrastructure Security
+  - id: infra-security
+    name: Infrastructure as Code Security
+    description: Scan IaC templates for security issues
+    type: action
+    dependsOn: [container-security]
+    agent: orchestrator
+    action: scanInfrastructure
+    inputs:
+      iacPath: ${inputs.iacPath || inputs.projectPath + '/infrastructure'}
+      platforms:
+        - terraform
+        - cloudformation
+        - kubernetes
+        - helm
+      checks:
+        - misconfigurations
+        - exposed-resources
+        - weak-encryption
+        - excessive-permissions
+        - network-exposure
+
+  # Step 7: Dynamic Security Testing (DAST)
+  - id: dast-scanning
+    name: Dynamic Application Security Testing
+    description: Test running application for vulnerabilities
+    type: action
+    dependsOn: [infra-security]
+    agent: debugearth
+    action: runDAST
+    conditions:
+      - field: inputs.applicationUrl
+        operator: not_equals
+        value: null
+        action: continue
+    inputs:
+      targetUrl: ${inputs.applicationUrl}
+      authentication: ${inputs.authConfig}
+      scanTypes:
+        - spider-scan
+        - active-scan
+        - ajax-spider
+        - fuzzing
+      attacks:
+        - sql-injection
+        - xss
+        - csrf
+        - directory-traversal
+        - command-injection
+
+  # Step 8: API Security Testing
+  - id: api-security
+    name: API Security Testing
+    description: Comprehensive API security validation
+    type: parallel
+    dependsOn: [dast-scanning]
+    conditions:
+      - field: inputs.hasAPI
+        operator: equals
+        value: true
+        action: continue
+    tasks:
+      - agent: debugearth
+        action: testAPIAuth
+        inputs:
+          apiSpec: ${inputs.apiSpecPath}
+          tests:
+            - authentication-bypass
+            - authorization-flaws
+            - jwt-vulnerabilities
+            - api-key-exposure
+      - agent: debugearth
+        action: testAPIInputs
+        inputs:
+          apiSpec: ${inputs.apiSpecPath}
+          tests:
+            - injection-attacks
+            - malformed-inputs
+            - rate-limiting
+            - data-validation
+
+  # Step 9: Security Code Review
+  - id: security-review
+    name: AI-Assisted Security Code Review
+    description: Deep security-focused code review
+    type: action
+    dependsOn: [api-security]
+    agent: botbie
+    action: securityCodeReview
+    inputs:
+      focusAreas: ${nodes.sast-scanning.outputs.hotspots}
+      reviewType: deep
+      patterns:
+        - authentication-flows
+        - authorization-checks
+        - data-validation
+        - output-encoding
+        - error-handling
+        - logging-practices
+
+  # Step 10: Remediation
+  - id: remediation
+    name: Automated Security Remediation
+    description: Fix identified security vulnerabilities
+    type: loop
+    dependsOn: [security-review]
+    agent: sketchie
+    action: remediateVulnerabilities
+    maxIterations: 10
+    inputs:
+      vulnerabilities: ${aggregateVulnerabilities()}
+      autoFix:
+        critical: true
+        high: true
+        medium: ${inputs.autoFixMedium || false}
+      strategies:
+        - update-dependencies
+        - patch-code
+        - add-validation
+        - implement-encoding
+        - strengthen-crypto
+        - fix-configurations
+
+  # Step 11: Compliance Validation
+  - id: compliance-check
+    name: Compliance Standards Validation
+    description: Validate against required compliance standards
+    type: parallel
+    dependsOn: [remediation]
+    agent: orchestrator
+    action: validateCompliance
+    inputs:
+      standards: ${inputs.complianceRequirements}
+      evidence:
+        - scan-reports
+        - remediation-logs
+        - test-results
+        - configuration-docs
+      generate:
+        - compliance-matrix
+        - gap-analysis
+        - remediation-plan
+
+  # Step 12: Penetration Testing
+  - id: pen-testing
+    name: Automated Penetration Testing
+    description: Simulate real-world attacks
+    type: action
+    dependsOn: [compliance-check]
+    agent: debugearth
+    action: runPenTest
+    conditions:
+      - field: inputs.runPenTest
+        operator: equals
+        value: true
+        action: continue
+    inputs:
+      scope: ${inputs.penTestScope || 'full'}
+      techniques:
+        - reconnaissance
+        - vulnerability-exploitation
+        - privilege-escalation
+        - lateral-movement
+        - data-exfiltration
+      reporting: detailed
+
+  # Step 13: Security Monitoring Setup
+  - id: monitoring-setup
+    name: Setup Security Monitoring
+    description: Configure ongoing security monitoring
+    type: action
+    dependsOn: [pen-testing]
+    agent: orchestrator
+    action: setupSecurityMonitoring
+    inputs:
+      monitors:
+        - intrusion-detection
+        - anomaly-detection
+        - log-analysis
+        - threat-intelligence
+        - vulnerability-alerts
+      siem: ${inputs.siemPlatform || 'splunk'}
+      alerts:
+        - critical-vulnerabilities
+        - suspicious-activities
+        - compliance-violations
+
+  # Step 14: Final Security Report
+  - id: final-report
+    name: Generate Security Report
+    description: Comprehensive security assessment report
+    type: merge
+    dependsOn: [monitoring-setup]
+    agent: orchestrator
+    action: generateSecurityReport
+    inputs:
+      includeAll: true
+      executiveSummary: true
+      technicalDetails: true
+      remediationTracking: true
+      complianceStatus: true
+      riskScore: true
+
+outputs:
+  - name: Security Report
+    type: report
+    format: pdf
+    destination: ${outputs.reportPath}/security-assessment.pdf
+  
+  - name: Vulnerability Report
+    type: report
+    format: html
+    destination: ${outputs.reportPath}/vulnerabilities.html
+  
+  - name: Compliance Matrix
+    type: report
+    format: xlsx
+    destination: ${outputs.reportPath}/compliance-matrix.xlsx
+  
+  - name: Remediation Log
+    type: report
+    format: json
+    destination: ${outputs.reportPath}/remediation-log.json
+  
+  - name: Pen Test Report
+    type: report
+    format: pdf
+    destination: ${outputs.reportPath}/pentest-report.pdf
+  
+  - name: Security Dashboard
+    type: artifact
+    format: url
+    destination: ${outputs.dashboardUrl}/security
+  
+  - name: SBOM
+    type: artifact
+    format: json
+    destination: ${outputs.artifactPath}/sbom.json
+
+metrics:
+  successRate: 99.2
+  averageExecutionTime: 360
+  totalExecutions: 1823
+  userRating: 4.9
+  vulnerabilitiesFound: 15847
+  vulnerabilitiesFixed: 15234
+  complianceRate: 98.7

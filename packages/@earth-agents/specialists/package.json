@@ -1,0 +1,27 @@
+{
+  "name": "@earth-agents/specialists",
+  "version": "1.0.0",
+  "description": "Specialist agents integration for Earth Agents ecosystem",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "lint": "eslint src --ext .ts"
+  },
+  "dependencies": {
+    "@earth-agents/core": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "jest": "^29.0.0"
+  },
+  "keywords": [
+    "earth-agents",
+    "specialists",
+    "claude-code",
+    "ai-agents"
+  ]
+}

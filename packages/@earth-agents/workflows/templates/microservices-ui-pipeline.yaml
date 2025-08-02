@@ -1,0 +1,377 @@
+id: microservices-ui-pipeline
+name: Microservices UI Pipeline
+description: Build and manage micro-frontend architectures with service-specific UIs
+category: microservices
+tier: enterprise
+tags:
+  - microservices
+  - micro-frontends
+  - module-federation
+  - distributed-ui
+  - service-mesh
+  - federated-modules
+industry:
+  - enterprise
+  - fintech
+  - e-commerce
+  - saas
+  - healthcare
+estimatedTime: 6-10 hours
+difficulty: advanced
+
+config:
+  parallelExecution: true
+  maxRetries: 2
+  timeoutMinutes: 600
+  customSettings:
+    architecture:
+      - module-federation
+      - single-spa
+      - web-components
+      - iframe-based
+    orchestration:
+      shell: ${inputs.shellApp || 'app-shell'}
+      discovery: ${inputs.discoveryService || 'consul'}
+      routing: dynamic
+    deployment:
+      strategy: independent
+      versioning: semantic
+      rollback: automatic
+    communication:
+      - event-bus
+      - shared-state
+      - cross-origin-messaging
+      - graphql-federation
+
+triggers:
+  - type: manual
+    config:
+      requiredInputs:
+        - architecture
+        - services
+        - shellConfig
+  - type: webhook
+    config:
+      source: service-registry
+      events: [service-added, service-updated]
+
+nodes:
+  # Step 1: Architecture Analysis
+  - id: architecture-analysis
+    name: Analyze Microservices Architecture
+    description: Understand service topology and UI requirements
+    type: parallel
+    agent: orchestrator
+    action: analyzeArchitecture
+    inputs:
+      services: ${inputs.services}
+      analysis:
+        - service-boundaries
+        - ui-composition
+        - shared-dependencies
+        - communication-patterns
+        - data-contracts
+        - authentication-flow
+
+  # Step 2: Micro-Frontend Setup
+  - id: micro-frontend-setup
+    name: Setup Micro-Frontend Architecture
+    description: Configure micro-frontend framework and tooling
+    type: action
+    dependsOn: [architecture-analysis]
+    agent: orchestrator
+    action: setupMicroFrontend
+    inputs:
+      architecture: ${inputs.architecture}
+      framework:
+        moduleFederation:
+          - webpack-config
+          - shared-dependencies
+          - remote-entries
+          - version-strategy
+        singleSpa:
+          - root-config
+          - parcel-config
+          - utility-modules
+
+  # Step 3: Shell Application
+  - id: shell-app
+    name: Create Shell Application
+    description: Build the container/shell application
+    type: action
+    dependsOn: [micro-frontend-setup]
+    agent: sketchie
+    action: createShellApp
+    inputs:
+      features:
+        - service-discovery
+        - dynamic-routing
+        - authentication
+        - error-boundaries
+        - loading-states
+        - layout-system
+      ui:
+        - navigation
+        - header
+        - sidebar
+        - notification-center
+
+  # Step 4: Service UI Generation
+  - id: service-ui-generation
+    name: Generate Service UIs
+    description: Create UI for each microservice
+    type: parallel
+    dependsOn: [shell-app]
+    agent: sketchie
+    action: generateServiceUI
+    forEach: ${inputs.services}
+    inputs:
+      service: ${currentService}
+      template: ${currentService.uiTemplate || 'dashboard'}
+      features:
+        - data-visualization
+        - crud-operations
+        - real-time-updates
+        - service-specific-nav
+      isolation:
+        - css-modules
+        - shadow-dom
+        - namespace-prefix
+
+  # Step 5: Shared Components
+  - id: shared-components
+    name: Create Shared Component Library
+    description: Build shared UI components across services
+    type: action
+    dependsOn: [architecture-analysis]
+    agent: sketchie
+    action: createSharedLibrary
+    inputs:
+      components:
+        - design-system
+        - common-ui
+        - data-tables
+        - charts
+        - forms
+      versioning: ${inputs.componentVersioning || 'semver'}
+      distribution:
+        - npm-packages
+        - cdn
+        - module-federation
+
+  # Step 6: Communication Layer
+  - id: communication-layer
+    name: Implement Communication Layer
+    description: Setup inter-service communication
+    type: parallel
+    dependsOn: [service-ui-generation]
+    tasks:
+      - agent: orchestrator
+        action: setupEventBus
+        inputs:
+          patterns:
+            - publish-subscribe
+            - request-response
+            - event-sourcing
+          implementation: ${inputs.eventBus || 'custom'}
+      - agent: orchestrator
+        action: setupStateManagement
+        inputs:
+          strategy: ${inputs.stateStrategy || 'distributed'}
+          sync:
+            - cross-service-state
+            - conflict-resolution
+            - eventual-consistency
+
+  # Step 7: Service Discovery
+  - id: service-discovery
+    name: Implement Service Discovery
+    description: Dynamic service registration and discovery
+    type: action
+    dependsOn: [shell-app]
+    agent: orchestrator
+    action: setupServiceDiscovery
+    inputs:
+      registry: ${inputs.discoveryService}
+      features:
+        - health-checks
+        - version-management
+        - load-balancing
+        - circuit-breakers
+      ui:
+        - service-catalog
+        - dependency-graph
+        - health-dashboard
+
+  # Step 8: Authentication & Authorization
+  - id: auth-setup
+    name: Setup Distributed Auth
+    description: Implement authentication across micro-frontends
+    type: action
+    dependsOn: [communication-layer]
+    agent: orchestrator
+    action: setupDistributedAuth
+    inputs:
+      provider: ${inputs.authProvider || 'oauth2'}
+      features:
+        - single-sign-on
+        - token-propagation
+        - permission-sync
+        - session-management
+      security:
+        - csrf-protection
+        - cors-configuration
+
+  # Step 9: Performance Optimization
+  - id: performance-optimization
+    name: Optimize Micro-Frontend Performance
+    description: Optimize loading and runtime performance
+    type: parallel
+    dependsOn: [service-ui-generation]
+    tasks:
+      - agent: sketchie
+        action: optimizeBundleLoading
+        inputs:
+          strategies:
+            - lazy-loading
+            - prefetching
+            - shared-chunks
+            - cdn-deployment
+      - agent: sketchie
+        action: optimizeRuntime
+        inputs:
+          techniques:
+            - memory-management
+            - event-cleanup
+            - dom-recycling
+
+  # Step 10: Testing Strategy
+  - id: testing-strategy
+    name: Implement Testing Strategy
+    description: Setup testing for micro-frontends
+    type: parallel
+    dependsOn: [auth-setup]
+    tasks:
+      - agent: debugearth
+        action: setupIntegrationTests
+        inputs:
+          scope:
+            - cross-service
+            - contract-testing
+            - e2e-flows
+      - agent: debugearth
+        action: setupIsolationTests
+        inputs:
+          levels:
+            - service-isolation
+            - component-isolation
+            - module-boundaries
+
+  # Step 11: Deployment Pipeline
+  - id: deployment-pipeline
+    name: Setup Deployment Pipeline
+    description: Configure independent deployment
+    type: action
+    dependsOn: [testing-strategy]
+    agent: orchestrator
+    action: setupDeploymentPipeline
+    inputs:
+      strategy: ${inputs.deploymentStrategy}
+      features:
+        - independent-deploys
+        - version-matrix
+        - canary-releases
+        - blue-green
+      rollback:
+        - automatic-rollback
+        - version-pinning
+        - dependency-checks
+
+  # Step 12: Monitoring & Observability
+  - id: monitoring-setup
+    name: Setup Monitoring
+    description: Implement distributed monitoring
+    type: parallel
+    dependsOn: [deployment-pipeline]
+    tasks:
+      - agent: orchestrator
+        action: setupTracing
+        inputs:
+          tool: ${inputs.tracingTool || 'jaeger'}
+          features:
+            - distributed-tracing
+            - performance-monitoring
+            - error-tracking
+      - agent: orchestrator
+        action: setupDashboards
+        inputs:
+          metrics:
+            - service-health
+            - ui-performance
+            - user-journeys
+            - dependency-status
+
+  # Step 13: Documentation
+  - id: documentation
+    name: Generate Documentation
+    description: Create comprehensive micro-frontend docs
+    type: action
+    dependsOn: [monitoring-setup]
+    agent: orchestrator
+    action: generateMicroFrontendDocs
+    inputs:
+      sections:
+        - architecture-overview
+        - service-contracts
+        - deployment-guide
+        - troubleshooting
+        - development-guide
+      formats:
+        - interactive-diagrams
+        - api-docs
+        - runbooks
+
+outputs:
+  - name: Micro-Frontend Bundle
+    type: artifact
+    format: zip
+    destination: ${outputs.artifactPath}/micro-frontends.zip
+  
+  - name: Shell Application
+    type: artifact
+    format: zip
+    destination: ${outputs.artifactPath}/shell-app.zip
+  
+  - name: Service Registry
+    type: artifact
+    format: json
+    destination: ${outputs.configPath}/service-registry.json
+  
+  - name: Deployment Configs
+    type: artifact
+    format: yaml
+    destination: ${outputs.configPath}/deployments/
+  
+  - name: Architecture Diagram
+    type: report
+    format: html
+    destination: ${outputs.reportPath}/architecture.html
+  
+  - name: Performance Report
+    type: report
+    format: pdf
+    destination: ${outputs.reportPath}/performance-report.pdf
+  
+  - name: Documentation Site
+    type: artifact
+    format: html
+    destination: ${outputs.docsPath}/index.html
+
+metrics:
+  successRate: 91.2
+  averageExecutionTime: 480
+  totalExecutions: 892
+  userRating: 4.8
+  serviceIsolation: 98.5%
+  deploymentFrequency: 15/day
+  mttr: 12
