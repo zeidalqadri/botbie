@@ -1,0 +1,18 @@
+# Earth Agents N8N - Terraform Variables
+# Copy this file to terraform.tfvars and fill in your values
+
+# Required: Your GCP Project ID
+project_id = "your-gcp-project-id"
+
+# Region for deployment (default: us-central1)
+region = "us-central1"
+
+# Zone for Compute Engine deployment (default: us-central1-a)
+zone = "us-central1-a"
+
+# N8N Authentication
+n8n_user     = "zeidalqadri@gmail.com"
+n8n_password = "Zeyazaya@1626"
+
+# Deployment type: "cloud_run", "gke", or "compute_engine"
+deployment_type = "cloud_run"

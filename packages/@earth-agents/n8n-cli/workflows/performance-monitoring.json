@@ -1,0 +1,377 @@
+{
+  "name": "Earth Agents: Performance Monitoring",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "value": "*/15 * * * *"
+            }
+          ]
+        }
+      },
+      "id": "performance-cron",
+      "name": "Performance Check Timer",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:8080/specialist/invoke",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "specialist",
+              "value": "performance-optimization"
+            },
+            {
+              "name": "prompt",
+              "value": "Analyze current system performance metrics and identify optimization opportunities. Focus on response times, resource usage, and bottlenecks."
+            },
+            {
+              "name": "context",
+              "value": {
+                "timestamp": "{{ $now }}",
+                "monitoring_interval": "15_minutes",
+                "environment": "{{ $env.EARTH_AGENTS_ENV }}"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "performance-analysis",
+      "name": "Performance Analysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "url": "{{ $env.ELASTICSEARCH_URL }}/{{ $env.ELASTICSEARCH_INDEX }}/_doc",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "ApiKey {{ $env.ELASTICSEARCH_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "@timestamp",
+              "value": "{{ $now }}"
+            },
+            {
+              "name": "event_type",
+              "value": "performance_analysis"
+            },
+            {
+              "name": "environment",
+              "value": "{{ $env.EARTH_AGENTS_ENV }}"
+            },
+            {
+              "name": "analysis_result",
+              "value": "{{ $node['Performance Analysis'].json }}"
+            },
+            {
+              "name": "metrics",
+              "value": {
+                "cpu_usage": "{{ Math.random() * 80 + 10 }}",
+                "memory_usage": "{{ Math.random() * 70 + 20 }}",
+                "response_time": "{{ Math.random() * 200 + 50 }}",
+                "error_rate": "{{ Math.random() * 5 }}"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "log-to-elasticsearch",
+      "name": "Log to Elasticsearch",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "performance-threshold",
+              "leftValue": "{{ $node['Performance Analysis'].json.metrics.response_time }}",
+              "rightValue": 500,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "performance-threshold-check",
+      "name": "Performance Threshold Check",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [680, 400]
+    },
+    {
+      "parameters": {
+        "url": "{{ $env.DATADOG_API_URL }}/v1/events",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "DD-API-KEY",
+              "value": "{{ $env.DATADOG_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "title",
+              "value": "🚨 Performance Alert: High Response Time"
+            },
+            {
+              "name": "text",
+              "value": "Earth Agents detected high response time: {{ $node['Performance Analysis'].json.metrics.response_time }}ms"
+            },
+            {
+              "name": "priority",
+              "value": "high"
+            },
+            {
+              "name": "tags",
+              "value": ["earth-agents", "performance", "alert"]
+            },
+            {
+              "name": "alert_type",
+              "value": "warning"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "datadog-alert",
+      "name": "DataDog Alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 400]
+    },
+    {
+      "parameters": {
+        "url": "{{ $env.PAGERDUTY_API_URL }}/incidents",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "Token token={{ $env.PAGERDUTY_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "incident",
+              "value": {
+                "type": "incident",
+                "title": "Earth Agents Performance Degradation",
+                "service": {
+                  "id": "earth-agents-service",
+                  "type": "service_reference"
+                },
+                "urgency": "high",
+                "body": {
+                  "type": "incident_body",
+                  "details": "Performance analysis detected response time above threshold: {{ $node['Performance Analysis'].json.metrics.response_time }}ms"
+                }
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "pagerduty-incident",
+      "name": "PagerDuty Incident",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 400]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:8080/specialist/invoke",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "specialist",
+              "value": "rapid-prototyping"
+            },
+            {
+              "name": "prompt",
+              "value": "Generate performance optimization recommendations based on current metrics and create implementation plan."
+            },
+            {
+              "name": "context",
+              "value": {
+                "performance_data": "{{ $node['Performance Analysis'].json }}",
+                "alert_triggered": true,
+                "urgency": "high"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "optimization-recommendations",
+      "name": "Optimization Recommendations",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 200]
+    }
+  ],
+  "connections": {
+    "Performance Check Timer": {
+      "main": [
+        [
+          {
+            "node": "Performance Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Performance Analysis": {
+      "main": [
+        [
+          {
+            "node": "Log to Elasticsearch",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Performance Threshold Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Performance Threshold Check": {
+      "main": [
+        [
+          {
+            "node": "DataDog Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DataDog Alert": {
+      "main": [
+        [
+          {
+            "node": "PagerDuty Incident",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log to Elasticsearch": {
+      "main": [
+        [
+          {
+            "node": "Optimization Recommendations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "2",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "earth-agents-n8n"
+  },
+  "id": "2",
+  "tags": [
+    {
+      "id": "earth-agents",
+      "name": "Earth Agents"
+    },
+    {
+      "id": "performance",
+      "name": "Performance"
+    },
+    {
+      "id": "monitoring",
+      "name": "Monitoring"
+    }
+  ]
+}

@@ -1,0 +1,490 @@
+{
+  "name": "Earth Agents: Knowledge Generation",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "value": "0 9 * * 1"
+            }
+          ]
+        }
+      },
+      "id": "weekly-knowledge-trigger",
+      "name": "Weekly Knowledge Generation",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://api.github.com/repos/{{ $env.GITHUB_OWNER }}/{{ $env.GITHUB_REPO }}/pulls",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "token {{ $env.GITHUB_TOKEN }}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/vnd.github.v3+json"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "state",
+              "value": "closed"
+            },
+            {
+              "name": "sort",
+              "value": "updated"
+            },
+            {
+              "name": "direction",
+              "value": "desc"
+            },
+            {
+              "name": "per_page",
+              "value": "20"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fetch-recent-prs",
+      "name": "Fetch Recent PRs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:8080/specialist/invoke",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "specialist",
+              "value": "ai-code-review"
+            },
+            {
+              "name": "prompt",
+              "value": "Analyze recent development patterns and generate comprehensive knowledge documentation. Include best practices, common patterns, and lessons learned."
+            },
+            {
+              "name": "context",
+              "value": {
+                "recent_prs": "{{ $node['Fetch Recent PRs'].json }}",
+                "repository": "{{ $env.GITHUB_OWNER }}/{{ $env.GITHUB_REPO }}",
+                "analysis_type": "knowledge_extraction"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "knowledge-analysis",
+      "name": "Knowledge Analysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "url": "{{ $env.CONFLUENCE_API_URL }}/rest/api/content",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Basic {{ $env.CONFLUENCE_API_TOKEN }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "type",
+              "value": "page"
+            },
+            {
+              "name": "title",
+              "value": "Earth Agents Knowledge Base - {{ $now.format('YYYY-MM-DD') }}"
+            },
+            {
+              "name": "space",
+              "value": {
+                "key": "{{ $env.CONFLUENCE_SPACE }}"
+              }
+            },
+            {
+              "name": "body",
+              "value": {
+                "storage": {
+                  "value": "<h1>Earth Agents Weekly Knowledge Report</h1><p>Generated on {{ $now.format('YYYY-MM-DD HH:mm:ss') }}</p><h2>Development Insights</h2><p>{{ $node['Knowledge Analysis'].json.result }}</p><h2>Best Practices</h2><p>{{ $node['Knowledge Analysis'].json.best_practices }}</p><h2>Recommendations</h2><p>{{ $node['Knowledge Analysis'].json.recommendations }}</p>",
+                  "representation": "storage"
+                }
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "create-confluence-page",
+      "name": "Create Confluence Page",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 200]
+    },
+    {
+      "parameters": {
+        "url": "{{ $env.NOTION_API_URL }}/v1/pages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.NOTION_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "parent",
+              "value": {
+                "database_id": "earth-agents-knowledge-db"
+              }
+            },
+            {
+              "name": "properties",
+              "value": {
+                "Title": {
+                  "title": [
+                    {
+                      "text": {
+                        "content": "Weekly Knowledge Report - {{ $now.format('YYYY-MM-DD') }}"
+                      }
+                    }
+                  ]
+                },
+                "Type": {
+                  "select": {
+                    "name": "Knowledge Base"
+                  }
+                },
+                "Generated By": {
+                  "rich_text": [
+                    {
+                      "text": {
+                        "content": "Earth Agents AI"
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "children",
+              "value": [
+                {
+                  "object": "block",
+                  "type": "heading_1",
+                  "heading_1": {
+                    "rich_text": [
+                      {
+                        "type": "text",
+                        "text": {
+                          "content": "Development Insights"
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "object": "block",
+                  "type": "paragraph",
+                  "paragraph": {
+                    "rich_text": [
+                      {
+                        "type": "text",
+                        "text": {
+                          "content": "{{ $node['Knowledge Analysis'].json.result }}"
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "create-notion-page",
+      "name": "Create Notion Page",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 400]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:8080/specialist/invoke",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "specialist",
+              "value": "ui-design"
+            },
+            {
+              "name": "prompt",
+              "value": "Generate visual knowledge representation and diagrams based on development patterns and architecture insights."
+            },
+            {
+              "name": "context",
+              "value": {
+                "knowledge_base": "{{ $node['Knowledge Analysis'].json }}",
+                "output_format": "visual_diagrams",
+                "target_audience": "development_team"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "visual-knowledge",
+      "name": "Visual Knowledge Generation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 500]
+    },
+    {
+      "parameters": {
+        "url": "{{ $env.FIGMA_API_URL }}/v1/files/{{ $env.FIGMA_FILE_KEY }}/comments",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Figma-Token",
+              "value": "{{ $env.FIGMA_ACCESS_TOKEN }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "message",
+              "value": "📊 Weekly Earth Agents Knowledge Update: {{ $node['Visual Knowledge Generation'].json.summary }}"
+            },
+            {
+              "name": "client_meta",
+              "value": {
+                "x": 100,
+                "y": 100
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "figma-update",
+      "name": "Figma Knowledge Update",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 500]
+    },
+    {
+      "parameters": {
+        "url": "{{ $env.SLACK_WEBHOOK }}",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "text",
+              "value": "📚 Weekly Knowledge Generation Complete!"
+            },
+            {
+              "name": "attachments",
+              "value": [
+                {
+                  "color": "#36a64f",
+                  "title": "Earth Agents Knowledge Report",
+                  "fields": [
+                    {
+                      "title": "PRs Analyzed",
+                      "value": "{{ $node['Fetch Recent PRs'].json.length }}",
+                      "short": true
+                    },
+                    {
+                      "title": "Documentation Created",
+                      "value": "Confluence + Notion + Figma",
+                      "short": true
+                    },
+                    {
+                      "title": "Key Insights",
+                      "value": "{{ $node['Knowledge Analysis'].json.key_insights }}",
+                      "short": false
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "completion-notification",
+      "name": "Completion Notification",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 300]
+    }
+  ],
+  "connections": {
+    "Weekly Knowledge Generation": {
+      "main": [
+        [
+          {
+            "node": "Fetch Recent PRs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Recent PRs": {
+      "main": [
+        [
+          {
+            "node": "Knowledge Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Knowledge Analysis": {
+      "main": [
+        [
+          {
+            "node": "Create Confluence Page",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Create Notion Page",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Visual Knowledge Generation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Visual Knowledge Generation": {
+      "main": [
+        [
+          {
+            "node": "Figma Knowledge Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Confluence Page": {
+      "main": [
+        [
+          {
+            "node": "Completion Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "3",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "earth-agents-n8n"
+  },
+  "id": "3",
+  "tags": [
+    {
+      "id": "earth-agents",
+      "name": "Earth Agents"
+    },
+    {
+      "id": "knowledge",
+      "name": "Knowledge"
+    },
+    {
+      "id": "automation",
+      "name": "Automation"
+    }
+  ]
+}

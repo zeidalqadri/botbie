@@ -11,11 +11,11 @@
     "validate": "node dist/validator.js"
   },
   "dependencies": {
-    "@earth-agents/core": "workspace:*",
-    "@earth-agents/botbie": "workspace:*",
-    "@earth-agents/debugearth": "workspace:*",
-    "@earth-agents/sketchie": "workspace:*",
-    "@earth-agents/cli": "workspace:*"
+    "@earth-agents/core": "file:../core",
+    "@earth-agents/botbie": "file:../botbie",
+    "@earth-agents/debugearth": "file:../debugearth",
+    "@earth-agents/sketchie": "file:../sketchie",
+    "@earth-agents/cli": "file:../cli"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

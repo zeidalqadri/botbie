@@ -7,10 +7,14 @@
   "scripts": {
     "build": "tsc",
     "test": "jest",
-    "lint": "eslint src --ext .ts"
+    "lint": "eslint src --ext .ts",
+    "activate": "node activate-claude-code.js",
+    "claude:activate": "npm run build && node activate-claude-code.js",
+    "claude:help": "node -e \"require('./dist/claude-code-bridge').help().then(console.log)\"",
+    "claude:agents": "node -e \"require('./dist/claude-code-bridge').agents().then(console.log)\""
   },
   "dependencies": {
-    "@earth-agents/core": "workspace:*",
+    "@earth-agents/core": "file:../core",
     "@modelcontextprotocol/sdk": "^1.0.0"
   },
   "devDependencies": {

@@ -3,6 +3,7 @@ import cors from 'cors';
 import { Logger } from '@earth-agents/core';
 import { DatabaseManager } from '../storage/DatabaseManager';
 import { UIComponent, ComponentType } from '../types';
+import { CrawlerLogger } from '../utils/Logger';
 
 export interface GalleryAPIConfig {
   port: number;
@@ -18,6 +19,7 @@ export function createGalleryAPI(config: GalleryAPIConfig): {
   const logger = new Logger('GalleryAPI');
   const app = express();
   const db = new DatabaseManager(config.databaseUrl);
+  const crawlerLogger = new CrawlerLogger();
   let server: any;
 
   // Middleware
@@ -268,6 +270,68 @@ export function createGalleryAPI(config: GalleryAPIConfig): {
       });
     } catch (error: any) {
       logger.error('Failed to get stats', { error });
+      res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  });
+
+  // Get crawler activity logs
+  app.get('/api/logs', async (req: Request, res: Response) => {
+    try {
+      const { limit = 50 } = req.query;
+      
+      const summary = await crawlerLogger.getSummary();
+      const recentActivity = await crawlerLogger.getRecentActivity(parseInt(limit as string));
+      
+      res.json({
+        success: true,
+        data: {
+          summary,
+          recentActivity
+        }
+      });
+    } catch (error: any) {
+      logger.error('Failed to get logs', { error });
+      res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  });
+
+  // Get N8N workflow status
+  app.get('/api/workflow-status', async (req: Request, res: Response) => {
+    try {
+      // Check if N8N is accessible
+      const n8nHealthy = await fetch('http://localhost:5678/healthz')
+        .then(() => true)
+        .catch(() => false);
+      
+      const lastCrawl = await crawlerLogger.getRecentActivity(1);
+      const summary = await crawlerLogger.getSummary();
+      
+      res.json({
+        success: true,
+        data: {
+          n8n: {
+            status: n8nHealthy ? 'running' : 'stopped',
+            url: 'http://localhost:5678'
+          },
+          crawler: {
+            lastActivity: lastCrawl[0]?.timestamp || 'No activity yet',
+            totalCrawls: summary.totalCrawls || 0,
+            successRate: summary.totalCrawls > 0 
+              ? (summary.successfulCrawls / summary.totalCrawls * 100).toFixed(1) + '%'
+              : 'N/A'
+          },
+          schedule: 'Every 6 hours',
+          nextRun: 'Check N8N UI for exact schedule'
+        }
+      });
+    } catch (error: any) {
+      logger.error('Failed to get workflow status', { error });
       res.status(500).json({
         success: false,
         error: error.message

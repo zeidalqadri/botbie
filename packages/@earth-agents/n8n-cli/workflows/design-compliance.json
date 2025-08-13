@@ -1,0 +1,466 @@
+{
+  "name": "Earth Agents: Design Compliance Monitor",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "figma-webhook",
+      "name": "Figma Design Update Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "ea-design-compliance"
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:8080/specialist/invoke",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "specialist",
+              "value": "ui-design"
+            },
+            {
+              "name": "prompt",
+              "value": "Analyze this Figma design for accessibility compliance, design system adherence, and best practices. Check WCAG 2.1 AA standards."
+            },
+            {
+              "name": "context",
+              "value": {
+                "figma_file_id": "{{ $node['Figma Design Update Webhook'].json['file_key'] }}",
+                "design_version": "{{ $node['Figma Design Update Webhook'].json['version_id'] }}",
+                "triggered_by": "{{ $node['Figma Design Update Webhook'].json['triggered_by']['handle'] }}",
+                "compliance_standards": ["WCAG 2.1 AA", "Design System", "Brand Guidelines"]
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "design-compliance-check",
+      "name": "Design Compliance Check",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:8080/specialist/invoke",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "specialist",
+              "value": "frontend-ui-specialist"
+            },
+            {
+              "name": "prompt",
+              "value": "Generate component implementation guidelines and code snippets based on the Figma design. Ensure responsive design and accessibility."
+            },
+            {
+              "name": "context",
+              "value": {
+                "design_analysis": "{{ $node['Design Compliance Check'].json }}",
+                "target_framework": "React",
+                "styling_approach": "Tailwind CSS",
+                "accessibility_level": "WCAG 2.1 AA"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "implementation-guidelines",
+      "name": "Implementation Guidelines",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "compliance-issues",
+              "leftValue": "{{ $node['Design Compliance Check'].json.compliance_score }}",
+              "rightValue": 85,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "compliance-threshold",
+      "name": "Compliance Threshold Check",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [680, 400]
+    },
+    {
+      "parameters": {
+        "url": "{{ $env.FIGMA_API_URL }}/v1/files/{{ $node['Figma Design Update Webhook'].json['file_key'] }}/comments",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Figma-Token",
+              "value": "{{ $env.FIGMA_ACCESS_TOKEN }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "message",
+              "value": "🚨 Earth Agents Compliance Issues Detected:\n\n{{ $node['Design Compliance Check'].json.issues_summary }}\n\n📝 Recommendations:\n{{ $node['Design Compliance Check'].json.recommendations }}\n\n🔧 Implementation Guide:\n{{ $node['Implementation Guidelines'].json.guidelines }}"
+            },
+            {
+              "name": "client_meta",
+              "value": {
+                "x": 100,
+                "y": 100,
+                "node_id": "{{ $node['Figma Design Update Webhook'].json['node_id'] }}"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "figma-compliance-comment",
+      "name": "Figma Compliance Comment",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 400]
+    },
+    {
+      "parameters": {
+        "url": "{{ $env.JIRA_API_URL }}/rest/api/3/issue",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Basic {{ $env.JIRA_API_TOKEN }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "fields",
+              "value": {
+                "project": {
+                  "key": "{{ $env.JIRA_PROJECT_KEY }}"
+                },
+                "summary": "Design Compliance Issues - {{ $node['Figma Design Update Webhook'].json['file_name'] }}",
+                "description": {
+                  "type": "doc",
+                  "version": 1,
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Earth Agents detected design compliance issues in Figma file: {{ $node['Figma Design Update Webhook'].json['file_name'] }}"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "heading",
+                      "attrs": {
+                        "level": 2
+                      },
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Issues Found"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "{{ $node['Design Compliance Check'].json.issues_summary }}"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "issuetype": {
+                  "name": "Task"
+                },
+                "priority": {
+                  "name": "High"
+                },
+                "labels": ["earth-agents", "design-compliance", "accessibility"]
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "create-jira-ticket",
+      "name": "Create JIRA Ticket",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 400]
+    },
+    {
+      "parameters": {
+        "url": "{{ $env.S3_API_URL }}/{{ $env.S3_COMPLIANCE_BUCKET }}/reports/design-compliance-{{ $now.format('YYYY-MM-DD-HHmmss') }}.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "requestMethod": "PUT",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "AWS4-HMAC-SHA256 Credential={{ $env.S3_ACCESS_KEY_ID }}/{{ $now.format('YYYYMMDD') }}/{{ $env.S3_REGION }}/s3/aws4_request"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "timestamp",
+              "value": "{{ $now }}"
+            },
+            {
+              "name": "figma_file",
+              "value": "{{ $node['Figma Design Update Webhook'].json['file_key'] }}"
+            },
+            {
+              "name": "compliance_analysis",
+              "value": "{{ $node['Design Compliance Check'].json }}"
+            },
+            {
+              "name": "implementation_guidelines",
+              "value": "{{ $node['Implementation Guidelines'].json }}"
+            },
+            {
+              "name": "compliance_score",
+              "value": "{{ $node['Design Compliance Check'].json.compliance_score }}"
+            },
+            {
+              "name": "issues_found",
+              "value": "{{ $node['Design Compliance Check'].json.issues_count }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "archive-compliance-report",
+      "name": "Archive Compliance Report",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 200]
+    },
+    {
+      "parameters": {
+        "url": "{{ $env.SLACK_WEBHOOK }}",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "text",
+              "value": "✅ Design Compliance Check Complete"
+            },
+            {
+              "name": "attachments",
+              "value": [
+                {
+                  "color": "{{ $node['Design Compliance Check'].json.compliance_score >= 85 ? 'good' : 'warning' }}",
+                  "title": "{{ $node['Figma Design Update Webhook'].json['file_name'] }} Compliance Report",
+                  "title_link": "{{ $node['Figma Design Update Webhook'].json['file_url'] }}",
+                  "fields": [
+                    {
+                      "title": "Compliance Score",
+                      "value": "{{ $node['Design Compliance Check'].json.compliance_score }}%",
+                      "short": true
+                    },
+                    {
+                      "title": "Issues Found",
+                      "value": "{{ $node['Design Compliance Check'].json.issues_count }}",
+                      "short": true
+                    },
+                    {
+                      "title": "Standards Checked",
+                      "value": "WCAG 2.1 AA, Design System, Brand Guidelines",
+                      "short": false
+                    },
+                    {
+                      "title": "Actions Taken",
+                      "value": "{{ $node['Design Compliance Check'].json.compliance_score < 85 ? 'Figma comment added, JIRA ticket created' : 'Report archived, guidelines generated' }}",
+                      "short": false
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "slack-summary",
+      "name": "Slack Summary",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 200]
+    }
+  ],
+  "connections": {
+    "Figma Design Update Webhook": {
+      "main": [
+        [
+          {
+            "node": "Design Compliance Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Design Compliance Check": {
+      "main": [
+        [
+          {
+            "node": "Implementation Guidelines",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Compliance Threshold Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Implementation Guidelines": {
+      "main": [
+        [
+          {
+            "node": "Archive Compliance Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compliance Threshold Check": {
+      "main": [
+        [
+          {
+            "node": "Figma Compliance Comment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Figma Compliance Comment": {
+      "main": [
+        [
+          {
+            "node": "Create JIRA Ticket",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Archive Compliance Report": {
+      "main": [
+        [
+          {
+            "node": "Slack Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "4",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "earth-agents-n8n"
+  },
+  "id": "4",
+  "tags": [
+    {
+      "id": "earth-agents",
+      "name": "Earth Agents"
+    },
+    {
+      "id": "design",
+      "name": "Design"
+    },
+    {
+      "id": "compliance",
+      "name": "Compliance"
+    },
+    {
+      "id": "accessibility",
+      "name": "Accessibility"
+    }
+  ]
+}
