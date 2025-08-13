@@ -126,7 +126,22 @@ export class Botbie extends EarthAgent {
       new DocumentationLibrarian()
     ];
     
-    logger.info(`Registered ${this.strategies.length} analysis strategies`);
+    // Import and register specialist strategies if available
+    try {
+      const { getBotbieSpecialistStrategies } = await import('@earth-agents/specialists/strategies/botbie');
+      const specialistStrategies = getBotbieSpecialistStrategies();
+      
+      // Add specialist strategies to the list
+      Object.values(specialistStrategies).forEach(strategy => {
+        this.strategies.push(strategy as Strategy);
+      });
+      
+      logger.info(`Registered ${Object.keys(specialistStrategies).length} specialist strategies`);
+    } catch (error) {
+      logger.debug('Specialist strategies not available:', error);
+    }
+    
+    logger.info(`Total registered strategies: ${this.strategies.length}`);
   }
   
   async execute(input: { path: string; options?: any }): Promise<CodeHealthReport> {
@@ -418,5 +433,55 @@ export class Botbie extends EarthAgent {
     // TODO: Implement change detection
     logger.info('Change detection not yet implemented');
     return [];
+  }
+  
+  /**
+   * Run specialist analysis on specific code
+   * Leverages Claude Code specialist agents for deep analysis
+   */
+  async runSpecialistAnalysis(
+    code: string,
+    specialistType: 'security-audit' | 'database-optimization' | 'api-design' | 'code-refactoring' | 'test-coverage',
+    context?: any
+  ): Promise<any> {
+    logger.info(`Running specialist analysis: ${specialistType}`);
+    
+    // Find the specialist strategy
+    const strategy = this.strategies.find(s => 
+      s.constructor.name.toLowerCase().includes(specialistType.replace('-', ''))
+    );
+    
+    if (!strategy) {
+      throw new Error(`Specialist strategy not found: ${specialistType}`);
+    }
+    
+    // Execute the strategy
+    const result = await strategy.execute({
+      graph: this.knowledgeGraph,
+      code,
+      ...context
+    });
+    
+    return result;
+  }
+  
+  /**
+   * Get available specialist strategies
+   */
+  getAvailableSpecialists(): string[] {
+    const specialists = [
+      'security-audit',
+      'database-optimization', 
+      'api-design',
+      'code-refactoring',
+      'test-coverage'
+    ];
+    
+    // Check which ones are actually loaded
+    return specialists.filter(spec => 
+      this.strategies.some(s => 
+        s.constructor.name.toLowerCase().includes(spec.replace('-', ''))
+      )
+    );
   }
 }

@@ -1,0 +1,356 @@
+id: realtime-collaboration
+name: Real-Time Collaboration Workflow
+description: Enable seamless real-time collaboration with AI-assisted pair programming
+category: collaboration
+tier: professional
+tags:
+  - collaboration
+  - pair-programming
+  - real-time
+  - team-development
+  - live-coding
+  - knowledge-sharing
+industry:
+  - technology
+  - education
+  - enterprise
+  - remote-teams
+estimatedTime: continuous
+difficulty: intermediate
+
+config:
+  parallelExecution: true
+  maxRetries: 2
+  timeoutMinutes: 480
+  customSettings:
+    collaborationMode:
+      - pair-programming
+      - mob-programming
+      - code-review-live
+      - debugging-session
+      - learning-session
+    realTimeFeatures:
+      - cursor-sharing
+      - live-typing
+      - voice-chat
+      - screen-sharing
+      - annotation
+    aiAssistance:
+      - suggestions
+      - error-detection
+      - documentation
+      - best-practices
+      - conflict-resolution
+    persistence:
+      - session-recording
+      - code-snapshots
+      - decision-log
+      - knowledge-capture
+
+triggers:
+  - type: manual
+    config:
+      requiredInputs:
+        - sessionType
+        - participants
+        - projectContext
+  - type: webhook
+    config:
+      source: calendar-integration
+      events: [scheduled-session]
+
+nodes:
+  # Step 1: Session Initialization
+  - id: session-init
+    name: Initialize Collaboration Session
+    description: Set up real-time collaboration environment
+    type: action
+    agent: orchestrator
+    action: initializeSession
+    inputs:
+      sessionType: ${inputs.sessionType}
+      participants: ${inputs.participants}
+      setup:
+        - workspace-sync
+        - permission-setup
+        - tool-initialization
+        - communication-channels
+      features: ${config.customSettings.realTimeFeatures}
+
+  # Step 2: Context Loading
+  - id: context-loading
+    name: Load Project Context
+    description: Load relevant project information for all participants
+    type: parallel
+    dependsOn: [session-init]
+    tasks:
+      - agent: botbie
+        action: loadCodeContext
+        inputs:
+          projectPath: ${inputs.projectContext}
+          relevant:
+            - current-task
+            - related-files
+            - dependencies
+            - recent-changes
+      - agent: orchestrator
+        action: loadDocumentation
+        inputs:
+          types:
+            - api-docs
+            - architecture
+            - guidelines
+            - previous-decisions
+
+  # Step 3: Participant Sync
+  - id: participant-sync
+    name: Synchronize Participants
+    description: Ensure all participants have same view and context
+    type: action
+    dependsOn: [context-loading]
+    agent: orchestrator
+    action: syncParticipants
+    inputs:
+      participants: ${inputs.participants}
+      sync:
+        - editor-state
+        - file-tree
+        - terminal-output
+        - debug-state
+      latencyOptimization: true
+
+  # Step 4: AI Assistant Activation
+  - id: ai-activation
+    name: Activate AI Assistants
+    description: Enable AI-powered assistance for the session
+    type: parallel
+    dependsOn: [participant-sync]
+    tasks:
+      - agent: botbie
+        action: activateLiveAnalysis
+        inputs:
+          mode: collaborative
+          features:
+            - syntax-checking
+            - type-checking
+            - suggestion-engine
+            - pattern-detection
+      - agent: sketchie
+        action: activateUIAssistance
+        inputs:
+          features:
+            - component-suggestions
+            - style-consistency
+            - accessibility-hints
+      - agent: debugearth
+        action: activateDebugAssist
+        inputs:
+          features:
+            - breakpoint-suggestions
+            - variable-inspection
+            - performance-monitoring
+
+  # Step 5: Collaboration Features
+  - id: collab-features
+    name: Enable Collaboration Features
+    description: Activate real-time collaboration capabilities
+    type: parallel
+    dependsOn: [ai-activation]
+    tasks:
+      - agent: orchestrator
+        action: enableCursorSharing
+        inputs:
+          participants: ${inputs.participants}
+          colors: auto-assign
+          labels: true
+      - agent: orchestrator
+        action: enableLiveTyping
+        inputs:
+          conflictResolution: last-write-wins
+          highlighting: true
+      - agent: orchestrator
+        action: enableAnnotations
+        inputs:
+          types:
+            - text-notes
+            - arrows
+            - highlights
+            - emoji-reactions
+
+  # Step 6: Knowledge Capture
+  - id: knowledge-capture
+    name: Capture Session Knowledge
+    description: Record important decisions and learnings
+    type: loop
+    dependsOn: [collab-features]
+    agent: orchestrator
+    action: captureKnowledge
+    continuous: true
+    inputs:
+      capture:
+        - decisions
+        - explanations
+        - problem-solutions
+        - best-practices
+        - gotchas
+      format:
+        - structured-notes
+        - code-comments
+        - documentation
+
+  # Step 7: Conflict Resolution
+  - id: conflict-resolution
+    name: Handle Merge Conflicts
+    description: AI-assisted conflict resolution
+    type: action
+    agent: botbie
+    action: resolveConflicts
+    triggers:
+      - event: merge-conflict
+    inputs:
+      strategy: ${inputs.conflictStrategy || 'ai-suggested'}
+      options:
+        - show-both-versions
+        - suggest-resolution
+        - explain-conflicts
+        - test-both-options
+
+  # Step 8: Live Testing
+  - id: live-testing
+    name: Collaborative Testing
+    description: Run tests together and debug failures
+    type: action
+    dependsOn: [collab-features]
+    agent: debugearth
+    action: collaborativeTest
+    continuous: true
+    inputs:
+      testRunner: ${detectTestRunner()}
+      features:
+        - shared-breakpoints
+        - collective-debugging
+        - test-result-sharing
+        - coverage-visualization
+
+  # Step 9: Code Quality Monitoring
+  - id: quality-monitoring
+    name: Real-Time Quality Monitoring
+    description: Continuous code quality feedback
+    type: parallel
+    dependsOn: [collab-features]
+    continuous: true
+    tasks:
+      - agent: botbie
+        action: monitorCodeQuality
+        inputs:
+          metrics:
+            - complexity
+            - duplication
+            - test-coverage
+            - type-safety
+          feedback: instant
+      - agent: sketchie
+        action: monitorUIQuality
+        inputs:
+          checks:
+            - accessibility
+            - performance
+            - consistency
+
+  # Step 10: Session Recording
+  - id: session-recording
+    name: Record Collaboration Session
+    description: Capture session for future reference
+    type: action
+    dependsOn: [session-init]
+    agent: orchestrator
+    action: recordSession
+    continuous: true
+    inputs:
+      capture:
+        - code-changes
+        - cursor-movements
+        - conversations
+        - decisions
+      privacy: ${inputs.privacyLevel || 'team-only'}
+      compression: true
+
+  # Step 11: AI Suggestions
+  - id: ai-suggestions
+    name: Provide AI Suggestions
+    description: Real-time AI-powered suggestions
+    type: action
+    dependsOn: [ai-activation]
+    continuous: true
+    agent: orchestrator
+    action: provideSuggestions
+    inputs:
+      types:
+        - code-completion
+        - refactoring
+        - bug-prevention
+        - optimization
+        - documentation
+      presentation:
+        - inline-hints
+        - sidebar-panel
+        - hover-tooltips
+
+  # Step 12: Session Summary
+  - id: session-summary
+    name: Generate Session Summary
+    description: Create summary of collaboration session
+    type: action
+    triggers:
+      - event: session-end
+    agent: orchestrator
+    action: generateSessionSummary
+    inputs:
+      include:
+        - participants
+        - duration
+        - files-modified
+        - decisions-made
+        - problems-solved
+        - knowledge-gained
+        - action-items
+      format: markdown
+
+outputs:
+  - name: Session Recording
+    type: artifact
+    format: video
+    destination: ${outputs.recordingPath}/session-${sessionId}.mp4
+  
+  - name: Code Snapshot
+    type: artifact
+    format: git-bundle
+    destination: ${outputs.snapshotPath}/snapshot-${sessionId}.bundle
+  
+  - name: Session Summary
+    type: report
+    format: markdown
+    destination: ${outputs.reportPath}/session-summary.md
+  
+  - name: Decision Log
+    type: report
+    format: json
+    destination: ${outputs.logsPath}/decisions.json
+  
+  - name: Knowledge Base Update
+    type: artifact
+    format: markdown
+    destination: ${outputs.kbPath}/learnings-${sessionId}.md
+  
+  - name: Collaboration Metrics
+    type: metric
+    format: json
+    destination: ${outputs.metricsPath}/collab-metrics.json
+
+metrics:
+  successRate: 96.4
+  averageSessionDuration: 120
+  totalSessions: 8934
+  userRating: 4.9
+  knowledgeCaptureRate: 87.3
+  productivityIncrease: 45%

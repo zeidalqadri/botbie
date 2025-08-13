@@ -1,0 +1,253 @@
+{
+  "name": "Earth Agents: Code Review Pipeline",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "trigger-webhook",
+      "name": "GitHub Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "ea-code-review"
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:8080/specialist/invoke",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "specialist",
+              "value": "senior-code-reviewer"
+            },
+            {
+              "name": "prompt",
+              "value": "Review this pull request for code quality, security, performance, and best practices. PR: {{ $node['GitHub Webhook Trigger'].json['pull_request']['html_url'] }}"
+            },
+            {
+              "name": "context",
+              "value": {
+                "repository": "{{ $node['GitHub Webhook Trigger'].json['repository']['full_name'] }}",
+                "pr_number": "{{ $node['GitHub Webhook Trigger'].json['number'] }}",
+                "changes": "{{ $node['GitHub Webhook Trigger'].json['pull_request']['additions'] + $node['GitHub Webhook Trigger'].json['pull_request']['deletions'] }}",
+                "files_changed": "{{ $node['GitHub Webhook Trigger'].json['pull_request']['changed_files'] }}"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "senior-code-reviewer",
+      "name": "Senior Code Reviewer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:8080/specialist/invoke",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "specialist",
+              "value": "security-audit"
+            },
+            {
+              "name": "prompt",
+              "value": "Perform security audit on this pull request. Focus on vulnerabilities, data exposure, and security best practices."
+            },
+            {
+              "name": "context",
+              "value": {
+                "code_review": "{{ $node['Senior Code Reviewer'].json }}",
+                "repository": "{{ $node['GitHub Webhook Trigger'].json['repository']['full_name'] }}"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "security-audit",
+      "name": "Security Audit",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://api.github.com/repos/{{ $node['GitHub Webhook Trigger'].json['repository']['full_name'] }}/issues/{{ $node['GitHub Webhook Trigger'].json['number'] }}/comments",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "token {{ $credentials.githubApi.accessToken }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "body",
+              "value": "## 🤖 Earth Agents Code Review Results\n\n### Senior Code Review\n{{ $node['Senior Code Reviewer'].json.result }}\n\n### Security Audit\n{{ $node['Security Audit'].json.result }}\n\n---\n*Automated review by Earth Agents*"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "post-comment",
+      "name": "Post GitHub Comment",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "url": "{{ $env.SLACK_WEBHOOK }}",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "text",
+              "value": "🔍 Code Review Complete for {{ $node['GitHub Webhook Trigger'].json['repository']['full_name'] }}#{{ $node['GitHub Webhook Trigger'].json['number'] }}"
+            },
+            {
+              "name": "attachments",
+              "value": [
+                {
+                  "color": "good",
+                  "title": "Earth Agents Review Summary",
+                  "title_link": "{{ $node['GitHub Webhook Trigger'].json['pull_request']['html_url'] }}",
+                  "fields": [
+                    {
+                      "title": "Repository",
+                      "value": "{{ $node['GitHub Webhook Trigger'].json['repository']['full_name'] }}",
+                      "short": true
+                    },
+                    {
+                      "title": "PR Number",
+                      "value": "#{{ $node['GitHub Webhook Trigger'].json['number'] }}",
+                      "short": true
+                    },
+                    {
+                      "title": "Files Changed",
+                      "value": "{{ $node['GitHub Webhook Trigger'].json['pull_request']['changed_files'] }}",
+                      "short": true
+                    },
+                    {
+                      "title": "Lines Changed",
+                      "value": "+{{ $node['GitHub Webhook Trigger'].json['pull_request']['additions'] }} -{{ $node['GitHub Webhook Trigger'].json['pull_request']['deletions'] }}",
+                      "short": true
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "slack-notification",
+      "name": "Slack Notification",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 300]
+    }
+  ],
+  "connections": {
+    "GitHub Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Senior Code Reviewer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Senior Code Reviewer": {
+      "main": [
+        [
+          {
+            "node": "Security Audit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Security Audit": {
+      "main": [
+        [
+          {
+            "node": "Post GitHub Comment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post GitHub Comment": {
+      "main": [
+        [
+          {
+            "node": "Slack Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "earth-agents-n8n"
+  },
+  "id": "1",
+  "tags": [
+    {
+      "id": "earth-agents",
+      "name": "Earth Agents"
+    },
+    {
+      "id": "code-review",
+      "name": "Code Review"
+    }
+  ]
+}

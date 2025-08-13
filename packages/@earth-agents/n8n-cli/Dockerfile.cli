@@ -1,0 +1,44 @@
+FROM node:18-alpine
+
+# Install required packages
+RUN apk add --no-cache \
+    bash \
+    curl \
+    jq \
+    git \
+    python3 \
+    py3-pip \
+    postgresql-client
+
+# Create app directory
+WORKDIR /app
+
+# Install Python dependencies for advanced JSON processing
+RUN pip3 install --no-cache-dir --break-system-packages \
+    click \
+    requests \
+    pyyaml \
+    jinja2 \
+    jsonschema
+
+# Install Node.js dependencies
+COPY package.json ./
+RUN npm install --omit=dev
+
+# Copy application files
+COPY scripts/ ./scripts/
+COPY workflows/ ./workflows/
+COPY templates/ ./templates/
+
+# Make scripts executable
+RUN chmod +x scripts/*.sh
+RUN chmod +x scripts/*.py
+
+# Create directories
+RUN mkdir -p /app/logs /app/backups /app/exports
+
+# Add scripts to PATH
+ENV PATH="/app/scripts:${PATH}"
+
+# Set default command
+CMD ["tail", "-f", "/dev/null"]

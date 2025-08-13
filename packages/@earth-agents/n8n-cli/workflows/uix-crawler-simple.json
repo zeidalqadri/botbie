@@ -1,0 +1,163 @@
+{
+  "name": "UIX Automated Design Crawler - Simple",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6
+            }
+          ]
+        }
+      },
+      "id": "b9d8e4f5-6g7c-5b3e-9f2g-ac4d8e3f2b5g",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// List of exceptional sites to crawl\nconst sites = [\n  { url: 'https://stripe.com', tags: ['fintech', 'minimal'] },\n  { url: 'https://linear.app', tags: ['saas', 'productivity'] },\n  { url: 'https://vercel.com', tags: ['developer', 'modern'] },\n  { url: 'https://github.com', tags: ['developer', 'community'] },\n  { url: 'https://www.figma.com', tags: ['design', 'collaborative'] }\n];\n\nreturn sites.map(site => ({\n  json: {\n    url: site.url,\n    tags: site.tags\n  }\n}));"
+      },
+      "id": "d2fag6h7-8i9e-7d5g-bh4i-ce6fag5h4d7i",
+      "name": "Prepare Sites",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:3001/api/crawl",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "url",
+              "value": "={{ $json.url }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e3gbh7i8-9jak-8e6h-ci5j-df7gbh6i5e8j",
+      "name": "Crawl Website",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.data.components.length }}",
+              "operation": "larger",
+              "value2": 5
+            }
+          ]
+        }
+      },
+      "id": "h6jeka1b-cmdn-bh9k-fl8m-gi1jeka9h8bm",
+      "name": "Quality Check",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "status",
+              "value": "High quality site with {{ $json.data.components.length }} components"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "high-quality-node",
+      "name": "High Quality",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [1050, 250]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "status",
+              "value": "Low quality site with only {{ $json.data.components.length }} components"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "low-quality-node",
+      "name": "Low Quality",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [1050, 350]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Prepare Sites",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Sites": {
+      "main": [
+        [
+          {
+            "node": "Crawl Website",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crawl Website": {
+      "main": [
+        [
+          {
+            "node": "Quality Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Quality Check": {
+      "main": [
+        [
+          {
+            "node": "High Quality",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Low Quality",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {},
+  "staticData": null,
+  "tags": []
+}

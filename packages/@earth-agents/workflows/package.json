@@ -1,0 +1,24 @@
+{
+  "name": "@earth-agents/workflows",
+  "version": "1.0.0",
+  "description": "Premium workflow templates for Earth Agents ecosystem",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "lint": "eslint src --ext .ts",
+    "validate": "node dist/validator.js"
+  },
+  "dependencies": {
+    "@earth-agents/core": "file:../core",
+    "@earth-agents/botbie": "file:../botbie",
+    "@earth-agents/debugearth": "file:../debugearth",
+    "@earth-agents/sketchie": "file:../sketchie",
+    "@earth-agents/cli": "file:../cli"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  }
+}

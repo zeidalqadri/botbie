@@ -1,0 +1,669 @@
+{
+  "name": "Earth Agents: Security Automation Pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "value": "0 2 * * *"
+            }
+          ]
+        }
+      },
+      "id": "daily-security-scan",
+      "name": "Daily Security Scan Trigger",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:8080/specialist/invoke",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "specialist",
+              "value": "security-audit"
+            },
+            {
+              "name": "prompt",
+              "value": "Perform comprehensive security audit of the codebase. Check for OWASP Top 10 vulnerabilities, dependency security issues, and configuration problems."
+            },
+            {
+              "name": "context",
+              "value": {
+                "scan_type": "daily_automated",
+                "repository": "{{ $env.GITHUB_OWNER }}/{{ $env.GITHUB_REPO }}",
+                "environment": "{{ $env.EARTH_AGENTS_ENV }}",
+                "standards": ["OWASP Top 10", "PCI-DSS", "HIPAA", "SOC2"]
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "security-audit",
+      "name": "Security Audit",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://api.github.com/repos/{{ $env.GITHUB_OWNER }}/{{ $env.GITHUB_REPO }}/dependency-graph/snapshots",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "token {{ $env.GITHUB_TOKEN }}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/vnd.github.v3+json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "dependency-scan",
+      "name": "Dependency Vulnerability Scan",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 500]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:8080/specialist/invoke",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "specialist",
+              "value": "backend-architecture"
+            },
+            {
+              "name": "prompt",
+              "value": "Analyze infrastructure security configuration. Check cloud security posture, network configurations, and access controls."
+            },
+            {
+              "name": "context",
+              "value": {
+                "security_audit": "{{ $node['Security Audit'].json }}",
+                "dependency_scan": "{{ $node['Dependency Vulnerability Scan'].json }}",
+                "infrastructure_type": "cloud_native",
+                "compliance_requirements": ["SOC2", "PCI-DSS"]
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "infrastructure-security",
+      "name": "Infrastructure Security Analysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "critical-vulnerabilities",
+              "leftValue": "{{ $node['Security Audit'].json.critical_vulnerabilities_count }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "critical-vulnerability-check",
+      "name": "Critical Vulnerability Check",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [680, 200]
+    },
+    {
+      "parameters": {
+        "url": "{{ $env.PAGERDUTY_API_URL }}/incidents",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "Token token={{ $env.PAGERDUTY_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "incident",
+              "value": {
+                "type": "incident",
+                "title": "🚨 Critical Security Vulnerabilities Detected",
+                "service": {
+                  "id": "earth-agents-security",
+                  "type": "service_reference"
+                },
+                "urgency": "high",
+                "priority": {
+                  "id": "P1",
+                  "type": "priority_reference"
+                },
+                "body": {
+                  "type": "incident_body",
+                  "details": "Earth Agents detected {{ $node['Security Audit'].json.critical_vulnerabilities_count }} critical security vulnerabilities requiring immediate attention."
+                }
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "critical-security-alert",
+      "name": "Critical Security Alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 200]
+    },
+    {
+      "parameters": {
+        "url": "{{ $env.JIRA_API_URL }}/rest/api/3/issue",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Basic {{ $env.JIRA_API_TOKEN }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "fields",
+              "value": {
+                "project": {
+                  "key": "{{ $env.JIRA_PROJECT_KEY }}"
+                },
+                "summary": "Security Vulnerabilities - Daily Scan {{ $now.format('YYYY-MM-DD') }}",
+                "description": {
+                  "type": "doc",
+                  "version": 1,
+                  "content": [
+                    {
+                      "type": "heading",
+                      "attrs": {
+                        "level": 2
+                      },
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Security Audit Summary"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Critical: {{ $node['Security Audit'].json.critical_vulnerabilities_count }}"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "High: {{ $node['Security Audit'].json.high_vulnerabilities_count }}"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Medium: {{ $node['Security Audit'].json.medium_vulnerabilities_count }}"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "heading",
+                      "attrs": {
+                        "level": 2
+                      },
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Remediation Steps"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "{{ $node['Security Audit'].json.remediation_steps }}"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "issuetype": {
+                  "name": "Bug"
+                },
+                "priority": {
+                  "name": "{{ $node['Security Audit'].json.critical_vulnerabilities_count > 0 ? 'Critical' : 'High' }}"
+                },
+                "labels": ["earth-agents", "security", "vulnerability", "automated-scan"]
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "security-jira-ticket",
+      "name": "Create Security JIRA Ticket",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 400]
+    },
+    {
+      "parameters": {
+        "url": "{{ $env.S3_API_URL }}/{{ $env.S3_COMPLIANCE_BUCKET }}/security-reports/security-scan-{{ $now.format('YYYY-MM-DD-HHmmss') }}.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "requestMethod": "PUT",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "AWS4-HMAC-SHA256 Credential={{ $env.S3_ACCESS_KEY_ID }}/{{ $now.format('YYYYMMDD') }}/{{ $env.S3_REGION }}/s3/aws4_request"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "scan_timestamp",
+              "value": "{{ $now }}"
+            },
+            {
+              "name": "repository",
+              "value": "{{ $env.GITHUB_OWNER }}/{{ $env.GITHUB_REPO }}"
+            },
+            {
+              "name": "security_audit",
+              "value": "{{ $node['Security Audit'].json }}"
+            },
+            {
+              "name": "dependency_scan",
+              "value": "{{ $node['Dependency Vulnerability Scan'].json }}"
+            },
+            {
+              "name": "infrastructure_analysis",
+              "value": "{{ $node['Infrastructure Security Analysis'].json }}"
+            },
+            {
+              "name": "compliance_status",
+              "value": {
+                "owasp_top10": "{{ $node['Security Audit'].json.owasp_compliance }}",
+                "pci_dss": "{{ $node['Infrastructure Security Analysis'].json.pci_compliance }}",
+                "soc2": "{{ $node['Infrastructure Security Analysis'].json.soc2_compliance }}"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "archive-security-report",
+      "name": "Archive Security Report",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:8080/specialist/invoke",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "specialist",
+              "value": "rapid-prototyping"
+            },
+            {
+              "name": "prompt",
+              "value": "Generate automated security fix recommendations and code patches for identified vulnerabilities. Prioritize by severity and provide implementation steps."
+            },
+            {
+              "name": "context",
+              "value": {
+                "security_issues": "{{ $node['Security Audit'].json }}",
+                "dependency_issues": "{{ $node['Dependency Vulnerability Scan'].json }}",
+                "target_languages": ["JavaScript", "TypeScript", "Python"],
+                "fix_preference": "automated_patches"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "automated-fix-generation",
+      "name": "Automated Fix Generation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 600]
+    },
+    {
+      "parameters": {
+        "url": "https://api.github.com/repos/{{ $env.GITHUB_OWNER }}/{{ $env.GITHUB_REPO }}/pulls",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "requestMethod": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "token {{ $env.GITHUB_TOKEN }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "title",
+              "value": "🔒 Earth Agents: Automated Security Fixes"
+            },
+            {
+              "name": "head",
+              "value": "earth-agents/security-fixes-{{ $now.format('YYYY-MM-DD') }}"
+            },
+            {
+              "name": "base",
+              "value": "main"
+            },
+            {
+              "name": "body",
+              "value": "## 🤖 Automated Security Fixes\n\nThis PR contains automated security fixes generated by Earth Agents.\n\n### Vulnerabilities Addressed\n{{ $node['Automated Fix Generation'].json.fixes_summary }}\n\n### Testing Required\n{{ $node['Automated Fix Generation'].json.testing_checklist }}\n\n---\n*Auto-generated by Earth Agents Security Pipeline*"
+            },
+            {
+              "name": "draft",
+              "value": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "create-security-pr",
+      "name": "Create Security Fix PR",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 600]
+    },
+    {
+      "parameters": {
+        "url": "{{ $env.SLACK_WEBHOOK }}",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "text",
+              "value": "🔒 Daily Security Scan Complete"
+            },
+            {
+              "name": "attachments",
+              "value": [
+                {
+                  "color": "{{ $node['Security Audit'].json.critical_vulnerabilities_count > 0 ? 'danger' : ($node['Security Audit'].json.high_vulnerabilities_count > 0 ? 'warning' : 'good') }}",
+                  "title": "Earth Agents Security Report - {{ $now.format('YYYY-MM-DD') }}",
+                  "fields": [
+                    {
+                      "title": "Critical Vulnerabilities",
+                      "value": "{{ $node['Security Audit'].json.critical_vulnerabilities_count }}",
+                      "short": true
+                    },
+                    {
+                      "title": "High Vulnerabilities",
+                      "value": "{{ $node['Security Audit'].json.high_vulnerabilities_count }}",
+                      "short": true
+                    },
+                    {
+                      "title": "Compliance Status",
+                      "value": "OWASP: {{ $node['Security Audit'].json.owasp_compliance }}, PCI-DSS: {{ $node['Infrastructure Security Analysis'].json.pci_compliance }}",
+                      "short": false
+                    },
+                    {
+                      "title": "Actions Taken",
+                      "value": "{{ $node['Security Audit'].json.critical_vulnerabilities_count > 0 ? 'PagerDuty alert sent, ' : '' }}JIRA ticket created, Security fixes PR generated",
+                      "short": false
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "security-summary-notification",
+      "name": "Security Summary Notification",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1340, 400]
+    }
+  ],
+  "connections": {
+    "Daily Security Scan Trigger": {
+      "main": [
+        [
+          {
+            "node": "Security Audit",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Dependency Vulnerability Scan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Security Audit": {
+      "main": [
+        [
+          {
+            "node": "Critical Vulnerability Check",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Infrastructure Security Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dependency Vulnerability Scan": {
+      "main": [
+        [
+          {
+            "node": "Infrastructure Security Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Infrastructure Security Analysis": {
+      "main": [
+        [
+          {
+            "node": "Create Security JIRA Ticket",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Automated Fix Generation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Critical Vulnerability Check": {
+      "main": [
+        [
+          {
+            "node": "Critical Security Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Security JIRA Ticket": {
+      "main": [
+        [
+          {
+            "node": "Archive Security Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Automated Fix Generation": {
+      "main": [
+        [
+          {
+            "node": "Create Security Fix PR",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Archive Security Report": {
+      "main": [
+        [
+          {
+            "node": "Security Summary Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "5",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "earth-agents-n8n"
+  },
+  "id": "5",
+  "tags": [
+    {
+      "id": "earth-agents",
+      "name": "Earth Agents"
+    },
+    {
+      "id": "security",
+      "name": "Security"
+    },
+    {
+      "id": "automation",
+      "name": "Automation"
+    },
+    {
+      "id": "compliance",
+      "name": "Compliance"
+    }
+  ]
+}

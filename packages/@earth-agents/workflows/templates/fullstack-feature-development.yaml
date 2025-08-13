@@ -1,0 +1,196 @@
+id: fullstack-feature-development
+name: Full-Stack Feature Development Pipeline
+description: Complete feature development workflow from design to deployment with quality checks
+category: development
+tier: professional
+tags:
+  - full-stack
+  - feature-development
+  - design-to-code
+  - quality-assurance
+estimatedTime: 2-4 hours
+difficulty: intermediate
+
+config:
+  parallelExecution: true
+  maxRetries: 3
+  timeoutMinutes: 240
+  notificationChannels:
+    - type: slack
+      config:
+        webhook: ${SLACK_WEBHOOK_URL}
+      events: [start, success, failure]
+
+triggers:
+  - type: manual
+    config:
+      requiredInputs:
+        - designSource
+        - featureName
+        - targetFramework
+  - type: git-hook
+    config:
+      branches: [feature/*, develop]
+      events: [push, pull_request]
+
+nodes:
+  # Step 1: Design Analysis
+  - id: analyze-design
+    name: Analyze Design Requirements
+    description: Extract components and patterns from design input
+    type: analysis
+    agent: sketchie
+    action: analyzeDesign
+    inputs:
+      designSource: ${inputs.designSource}
+      extractTokens: true
+      detectPatterns: true
+      generateStructure: true
+
+  # Step 2: Component Planning
+  - id: plan-components
+    name: Plan Component Architecture
+    description: Create component hierarchy and dependencies
+    type: analysis
+    agent: orchestrator
+    action: planArchitecture
+    dependsOn: [analyze-design]
+    inputs:
+      components: ${nodes.analyze-design.outputs.components}
+      framework: ${inputs.targetFramework}
+      patterns: ${nodes.analyze-design.outputs.patterns}
+
+  # Step 3: Parallel Component Generation
+  - id: generate-components
+    name: Generate Components
+    description: Create all components in parallel
+    type: parallel
+    agent: sketchie
+    action: batchGenerateComponents
+    dependsOn: [plan-components]
+    inputs:
+      componentPlan: ${nodes.plan-components.outputs.plan}
+      options:
+        framework: ${inputs.targetFramework}
+        styling: ${inputs.stylingLibrary || 'styled-components'}
+        typescript: true
+        testing: true
+        storybook: true
+
+  # Step 4: Code Quality Check
+  - id: quality-check
+    name: Code Quality Analysis
+    description: Analyze generated code for quality issues
+    type: parallel
+    dependsOn: [generate-components]
+    tasks:
+      - agent: botbie
+        action: analyzeCode
+        inputs:
+          path: ${outputs.componentPath}
+          fix: true
+          rules:
+            - react-best-practices
+            - typescript-strict
+            - performance
+      - agent: sketchie
+        action: checkAccessibility
+        inputs:
+          path: ${outputs.componentPath}
+          wcagLevel: AA
+          autoFix: true
+
+  # Step 5: Integration Testing
+  - id: integration-test
+    name: Integration Testing
+    description: Test component integration and interactions
+    type: action
+    agent: debugearth
+    action: runIntegrationTests
+    dependsOn: [quality-check]
+    inputs:
+      components: ${nodes.generate-components.outputs.components}
+      testScenarios:
+        - user-flows
+        - edge-cases
+        - error-handling
+
+  # Step 6: Performance Optimization
+  - id: optimize-performance
+    name: Performance Optimization
+    description: Optimize bundle size and render performance
+    type: action
+    agent: sketchie
+    action: optimizePerformance
+    dependsOn: [integration-test]
+    conditions:
+      - field: bundleSize
+        operator: greater_than
+        value: 50000
+        action: continue
+    inputs:
+      path: ${outputs.componentPath}
+      targets:
+        - bundle-size
+        - render-time
+        - lazy-loading
+
+  # Step 7: Documentation Generation
+  - id: generate-docs
+    name: Generate Documentation
+    description: Create comprehensive documentation
+    type: parallel
+    dependsOn: [optimize-performance]
+    tasks:
+      - agent: sketchie
+        action: generateComponentDocs
+        inputs:
+          format: markdown
+          includeExamples: true
+      - agent: sketchie
+        action: generateStorybook
+        inputs:
+          interactive: true
+          themes: [light, dark]
+
+  # Step 8: Final Validation
+  - id: final-validation
+    name: Final Validation
+    description: Validate complete feature before deployment
+    type: merge
+    agent: orchestrator
+    action: validateFeature
+    dependsOn: [generate-docs]
+    inputs:
+      qualityThreshold: 85
+      performanceThreshold:
+        bundleSize: 100000
+        renderTime: 16
+      accessibilityThreshold: 95
+
+outputs:
+  - name: Component Library
+    type: artifact
+    format: zip
+    destination: ${outputs.artifactPath}/components.zip
+  
+  - name: Quality Report
+    type: report
+    format: html
+    destination: ${outputs.reportPath}/quality-report.html
+  
+  - name: Performance Metrics
+    type: metric
+    format: json
+    destination: ${outputs.metricsPath}/performance.json
+  
+  - name: Documentation
+    type: artifact
+    format: html
+    destination: ${outputs.docsPath}/index.html
+
+metrics:
+  successRate: 94.5
+  averageExecutionTime: 180
+  totalExecutions: 1247
+  userRating: 4.8

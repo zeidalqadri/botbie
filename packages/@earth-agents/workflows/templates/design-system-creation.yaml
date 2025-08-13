@@ -1,0 +1,302 @@
+id: design-system-creation
+name: Design System Creation & Maintenance
+description: Extract, create, and maintain a comprehensive design system from existing code or new designs
+category: design-system
+tier: enterprise
+tags:
+  - design-system
+  - design-tokens
+  - component-library
+  - documentation
+  - theme-management
+industry:
+  - enterprise
+  - agency
+  - saas
+estimatedTime: 4-8 hours
+difficulty: advanced
+
+config:
+  parallelExecution: true
+  maxRetries: 2
+  timeoutMinutes: 480
+  customSettings:
+    tokenCategories:
+      - color
+      - typography
+      - spacing
+      - shadow
+      - radius
+      - animation
+      - breakpoint
+    componentCategories:
+      - primitives
+      - components
+      - patterns
+      - layouts
+
+triggers:
+  - type: manual
+    config:
+      requiredInputs:
+        - sourceType # existing-code, figma, sketch, new
+        - sourcePath
+        - targetFramework
+  - type: schedule
+    config:
+      cron: "0 2 * * 1" # Weekly on Mondays at 2 AM
+      action: sync-tokens
+
+nodes:
+  # Step 1: Token Extraction/Definition
+  - id: extract-tokens
+    name: Extract Design Tokens
+    description: Extract or define design tokens from source
+    type: action
+    agent: sketchie
+    action: extractDesignTokens
+    inputs:
+      sourceType: ${inputs.sourceType}
+      sourcePath: ${inputs.sourcePath}
+      categories: ${config.customSettings.tokenCategories}
+      deduplication: true
+      normalization: true
+
+  # Step 2: Token Analysis & Optimization
+  - id: analyze-tokens
+    name: Analyze Token Consistency
+    description: Check for inconsistencies and optimization opportunities
+    type: parallel
+    dependsOn: [extract-tokens]
+    tasks:
+      - agent: sketchie
+        action: analyzeTokenConsistency
+        inputs:
+          tokens: ${nodes.extract-tokens.outputs.tokens}
+          rules:
+            - spacing-scale
+            - color-harmony
+            - typography-hierarchy
+      - agent: botbie
+        action: analyzeTokenUsage
+        inputs:
+          codebasePath: ${inputs.sourcePath}
+          tokens: ${nodes.extract-tokens.outputs.tokens}
+
+  # Step 3: Base Component Generation
+  - id: generate-primitives
+    name: Generate Primitive Components
+    description: Create foundational components using tokens
+    type: parallel
+    dependsOn: [analyze-tokens]
+    agent: sketchie
+    action: generatePrimitives
+    inputs:
+      tokens: ${nodes.extract-tokens.outputs.tokens}
+      framework: ${inputs.targetFramework}
+      components:
+        - Button
+        - Input
+        - Typography
+        - Box
+        - Flex
+        - Grid
+        - Icon
+        - Spinner
+      variants: true
+      accessibility: true
+
+  # Step 4: Component Patterns
+  - id: generate-patterns
+    name: Generate Component Patterns
+    description: Create higher-level component patterns
+    type: parallel
+    dependsOn: [generate-primitives]
+    agent: sketchie
+    action: generatePatterns
+    inputs:
+      primitives: ${nodes.generate-primitives.outputs.components}
+      patterns:
+        - Card
+        - Modal
+        - Navigation
+        - Form
+        - Table
+        - Alert
+        - Dropdown
+        - Tabs
+      composability: true
+
+  # Step 5: Theme Generation
+  - id: generate-themes
+    name: Generate Theme Variations
+    description: Create theme variations (light, dark, high-contrast)
+    type: parallel
+    dependsOn: [extract-tokens]
+    agent: sketchie
+    action: generateThemes
+    inputs:
+      tokens: ${nodes.extract-tokens.outputs.tokens}
+      variations:
+        - name: light
+          base: default
+        - name: dark
+          base: default
+          transforms:
+            - invert-colors
+            - adjust-contrast
+        - name: high-contrast
+          base: default
+          transforms:
+            - maximize-contrast
+            - bold-typography
+
+  # Step 6: Quality Assurance
+  - id: quality-assurance
+    name: Quality Assurance
+    description: Comprehensive quality checks
+    type: parallel
+    dependsOn: [generate-patterns, generate-themes]
+    tasks:
+      - agent: sketchie
+        action: validateAccessibility
+        inputs:
+          components: ${nodes.generate-patterns.outputs.components}
+          themes: ${nodes.generate-themes.outputs.themes}
+          wcagLevel: AA
+      - agent: botbie
+        action: validateCodeQuality
+        inputs:
+          components: ${nodes.generate-patterns.outputs.components}
+          standards:
+            - naming-conventions
+            - prop-types
+            - documentation
+      - agent: debugearth
+        action: testThemeSwitching
+        inputs:
+          themes: ${nodes.generate-themes.outputs.themes}
+          scenarios:
+            - runtime-switching
+            - persistence
+            - performance
+
+  # Step 7: Documentation Generation
+  - id: generate-documentation
+    name: Generate Documentation
+    description: Create comprehensive design system documentation
+    type: parallel
+    dependsOn: [quality-assurance]
+    tasks:
+      - agent: sketchie
+        action: generateTokenDocs
+        inputs:
+          tokens: ${nodes.extract-tokens.outputs.tokens}
+          format: markdown
+          visualize: true
+      - agent: sketchie
+        action: generateComponentDocs
+        inputs:
+          components: ${nodes.generate-patterns.outputs.components}
+          format: storybook
+          interactive: true
+      - agent: orchestrator
+        action: generateUsageGuidelines
+        inputs:
+          patterns: ${nodes.generate-patterns.outputs.patterns}
+          bestPractices: true
+
+  # Step 8: Build & Package
+  - id: build-package
+    name: Build Design System Package
+    description: Package design system for distribution
+    type: action
+    dependsOn: [generate-documentation]
+    agent: orchestrator
+    action: buildPackage
+    inputs:
+      name: ${inputs.packageName || '@company/design-system'}
+      version: ${inputs.version || '1.0.0'}
+      exports:
+        - tokens
+        - components
+        - themes
+        - utils
+      formats:
+        - esm
+        - cjs
+        - umd
+
+  # Step 9: Integration Testing
+  - id: integration-test
+    name: Integration Testing
+    description: Test design system integration
+    type: action
+    dependsOn: [build-package]
+    agent: debugearth
+    action: testIntegration
+    inputs:
+      package: ${nodes.build-package.outputs.package}
+      frameworks:
+        - react
+        - next
+        - gatsby
+      scenarios:
+        - tree-shaking
+        - ssr-compatibility
+        - theme-switching
+
+  # Step 10: Deployment & Monitoring
+  - id: deploy-monitor
+    name: Deploy and Monitor
+    description: Deploy design system and set up monitoring
+    type: merge
+    dependsOn: [integration-test]
+    agent: orchestrator
+    action: deployAndMonitor
+    inputs:
+      deployTargets:
+        - npm
+        - github-packages
+        - internal-registry
+      monitoring:
+        - usage-analytics
+        - version-adoption
+        - performance-metrics
+
+outputs:
+  - name: Design System Package
+    type: artifact
+    format: npm-package
+    destination: ${outputs.packagePath}
+  
+  - name: Token Documentation
+    type: artifact
+    format: html
+    destination: ${outputs.docsPath}/tokens.html
+  
+  - name: Component Library
+    type: artifact
+    format: storybook
+    destination: ${outputs.storybookPath}
+  
+  - name: Theme Files
+    type: artifact
+    format: zip
+    destination: ${outputs.themePath}/themes.zip
+  
+  - name: Integration Report
+    type: report
+    format: pdf
+    destination: ${outputs.reportPath}/design-system-report.pdf
+  
+  - name: Usage Analytics
+    type: metric
+    format: json
+    destination: ${outputs.metricsPath}/usage.json
+
+metrics:
+  successRate: 96.2
+  averageExecutionTime: 360
+  totalExecutions: 523
+  userRating: 4.9

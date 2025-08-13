@@ -1,0 +1,15 @@
+{
+  "service_url": "https://earth-agents-n8n-n6ofijmqgq-uc.a.run.app",
+  "project_id": "zeidgeistdotcom",
+  "region": "us-central1",
+  "service_name": "earth-agents-n8n",
+  "webhook_urls": {
+    "code_review": "https://earth-agents-n8n-n6ofijmqgq-uc.a.run.app/webhook/ea-code-review",
+    "design_compliance": "https://earth-agents-n8n-n6ofijmqgq-uc.a.run.app/webhook/ea-design-compliance"
+  },
+  "credentials": {
+    "username": "zeidalqadri@gmail.com",
+    "password": "Zeyazaya@1626"
+  },
+  "deployed_at": "2025-08-02T00:12:39Z"
+}
